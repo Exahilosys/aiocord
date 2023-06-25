@@ -39,5 +39,5 @@ And run the following in your terminal:
 
 This is a simple example to get you started in seconds, but the library covers a vast wealth tools to fit any scenario.
 
-Check out the `Documentation <http://aiocord.readthedocs.io>`_'s `Examples <https://aiocord.readthedocs.io/en/latest/pages/examples.html>`_ section for more, 
+Check out the `Documentation <https://aiocord.readthedocs.io>`_'s `Examples <https://aiocord.readthedocs.io/en/latest/pages/examples.html>`_ section for more, 
 such as how to use `Commands <https://aiocord.readthedocs.io/en/latest/pages/examples.html#commands>`_ and `Interactions <https://aiocord.readthedocs.io/en/latest/pages/examples.html#interactions>`_.
