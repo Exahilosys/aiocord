@@ -20,7 +20,7 @@ setuptools.setup(
     license = 'MIT',
     long_description = readme,
     description = 'A modern API wrapper for Discord.',
-    requires = [
+    install_requires = [
         'yarl    (>= 1.9.1, < 2.0.0)',
         'aiohttp (>= 3.8.4, < 4.0.0)',
         'vessel  (>= 4.2.0, < 5.0.0)',
