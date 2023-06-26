@@ -1,9 +1,14 @@
 import os
+import sys
 import asyncio
 import argparse
 import json
 import functools
 import operator
+import contextlib
+import queue
+import logging
+import logging.handlers
 
 from . import helpers as _helpers
 from . import enums   as _enums
@@ -15,6 +20,31 @@ from . import widget  as _widget
 
 __all__ = ('main',)
 
+
+@contextlib.contextmanager
+def _maintain_logging():
+
+    store = queue.Queue()
+    queue_handler = logging.handlers.QueueHandler(store)
+    basic_handler = logging.StreamHandler()
+    listener = logging.handlers.QueueListener(store, basic_handler)
+
+    LoggerBase = logging.getLoggerClass()
+
+    class Logger(LoggerBase):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.handlers.append(queue_handler)
+
+    logging.setLoggerClass(Logger)
+
+    listener.start()
+
+    yield
+
+    listener.stop()
+
+    logging.setLoggerClass(LoggerBase)
 
 _parser = argparse.ArgumentParser(
     description = 'manage a discord client'
@@ -33,7 +63,7 @@ def _get_client(info):
         try:
             token = os.environ['DISCORD_TOKEN']
         except KeyError:
-            print('token not specified or set in environment')
+            print('token not specified or set in environment', file = sys.stderr)
             exit()
 
     token = 'Bot ' + token
@@ -56,7 +86,8 @@ def _main(args = None):
 
     function = space[f'_main_{info.action}']
     
-    function(info)
+    with _maintain_logging():
+        function(info)
   
 
 _manage_start_parser = _manage_parsers.add_parser(
@@ -122,7 +153,6 @@ async def _main_start_leave(client, name):
     await client.stop()
 
     await _widget.drop(client, name)
-
 
 def _main_start(info):
 
