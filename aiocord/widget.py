@@ -117,7 +117,7 @@ async def _load(client, name, path):
 
     if path is None:
         asset = _find_caller_widget_asset()
-        path = '.' if asset is None else asset.path
+        path = '.' if asset is None else os.path.dirname(asset.path)
 
     loop = asyncio.get_event_loop()
 
