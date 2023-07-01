@@ -66,7 +66,7 @@ html_css_files = [
     'main.css'
 ]
 
-pygments_style = 'stata-dark'
+pygments_style = 'github-dark'
 
 html_sidebars = {
    '**': ['searchbox.html', 'globaltoc.html']
