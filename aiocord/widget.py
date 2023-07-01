@@ -5,6 +5,12 @@ import functools
 import types
 import weakref
 import inspect
+import itertools
+import aiohttp
+import re
+import io
+import zipfile
+import tempfile
 
 from . import helpers as _helpers
 from . import model   as _model
@@ -35,7 +41,11 @@ class Info(typing.NamedTuple):
     """
 
 
-def _load_module(name, path, intermediary = '_m_'):
+def _load_module(path, *, ids = itertools.count(0)):
+
+    intermediary = next(ids)
+
+    name = os.path.basename(path)
 
     module_name = f'{__name__}.{intermediary}.{name}'
 
@@ -108,41 +118,31 @@ def _find_caller_widget_asset():
             asset = _assets[module]
         except KeyError:
             continue
-        return asset
+        break
+    else:
+        asset = None
     
-    return None
+    return module, asset
 
 
-async def _load(client, name, path):
-
-    if path is None:
-        asset = _find_caller_widget_asset()
-        path = '.' if asset is None else os.path.dirname(asset.path)
-
-    loop = asyncio.get_event_loop()
-
-    try:
-        modules = _modules_group[client]
-    except KeyError:
-        modules = _modules_group[client] = weakref.WeakValueDictionary()
+async def _load_internal_widget(client, name, module):
 
     try:
         await _drop(client, name, pop = False)
     except KeyError:
         pass
 
+    try:
+        modules = _modules_group[client]
+    except KeyError:
+        modules = _modules_group[client] = weakref.WeakValueDictionary()
+
+    modules[name] = module
+
     if not (application := client.cache.application):
         application = await client.get_self_application_information()
 
     commands = await client.get_global_application_commands(application.id)
-
-    module_path = os.path.join(path, name)
-    
-    load_module = functools.partial(_load_module, name, module_path, intermediary = id(client))
-
-    module = modules[name] = await loop.run_in_executor(None, load_module)
-
-    # module.__name__, name = name, module.__name__
 
     info = Info(client, types.MappingProxyType(modules))
 
@@ -202,20 +202,113 @@ async def _load(client, name, path):
 
     client.callbacks.extend(callbacks)
 
-    _assets[module] = types.SimpleNamespace(
-        name = name, 
-        path = path, 
+    asset = _assets[module] = types.SimpleNamespace(
+        name = name,
         info = info, 
         Events = Events,
         callbacks = callbacks
     )
 
+    return asset
+
+
+async def _load_internal(client, name, path):
+
+    loop = asyncio.get_event_loop()
+
+    if path is None:
+        module, asset = _find_caller_widget_asset()
+        if asset is None:
+            raise ModuleNotFoundError('implicit path used with unknown calling widget')
+        path = os.path.dirname(module.__path__[0])
+
+    load_module = functools.partial(_load_module, path)
+
+    module = await loop.run_in_executor(None, load_module)
+    
+    asset = await _load_internal_widget(client, name, module)
+
     return module
 
 
-def load(client: _client.Client, 
-         name  : str, 
-         path  : str = None) -> typing.Awaitable[types.ModuleType]:
+async def _load_external_github(session, client, name, author, project, version):
+
+    response = await session.request('GET', f'https://api.github.com/repos/{author}/{project}/tags')
+    tags = await response.json()
+
+    if version is None:
+        tag = max(tags, key = lambda tag: tag['name'])
+    else:
+        version_pattern = re.compile(version)
+        try:
+            tag = next(filter(lambda tag: version_pattern.match(tag['name']), tags))
+        except StopIteration:
+            raise ModuleNotFoundError(f'unknown tag {version} for {author}/{project}')
+    
+    response = await session.request('GET', tag['zipball_url'])
+    data = await response.read()
+    archive = zipfile.ZipFile(io.BytesIO(data))
+
+    loop = asyncio.get_event_loop()
+
+    def load_module():
+        with tempfile.TemporaryDirectory(prefix = __name__ + '_') as project_path_base:
+            archive.extractall(project_path_base)
+            for project_path_name in os.listdir(project_path_base):
+                if any(map(project_path_name.startswith, ('.', '_'))):
+                    continue
+                project_path = os.path.join(project_path_base, project_path_name)
+                if not os.path.isdir(project_path):
+                    continue
+                break
+            else:
+                raise ModuleNotFoundError(f'could not find project directory')
+            module_path = os.path.join(project_path, 'widget')
+            module = _load_module(module_path)
+        return module
+    
+    module = await loop.run_in_executor(None, load_module)
+    
+    asset = await _load_internal_widget(client, name, module)
+
+    return module
+
+
+_load_external_functions = {
+    'github': _load_external_github
+} 
+
+
+async def _load_external(vendor, client, name, path, version):
+
+    function = _load_external_functions[vendor]
+
+    author, project = path.split('/')
+
+    async with aiohttp.ClientSession() as session:
+        module = await function(session, client, name, author, project, version)
+
+    return module
+
+
+async def _load(client, name, path, vendor, *, version = None):
+
+    if vendor is None:
+        function = lambda: _load_internal(client, name, path)
+    else:
+        function = lambda: _load_external(vendor, client, name, path, version)
+
+    module = await function()
+
+    return module
+
+
+def load(client : _client.Client, 
+         name   : str, 
+         path   : str                      = None,
+         vendor : typing.Literal['github'] = None,
+         *,
+         version: str                      = None) -> typing.Awaitable[types.ModuleType]:
     
     """
     Load a widget by creating and attaching events to the client.
@@ -225,12 +318,16 @@ def load(client: _client.Client,
     :param name:
         The name of the widget, used for identifying in :attr:`.Info.widgets` and :func:`.drop`\ing.
     :param path:
-        The location of the module's parent directory. If not specified, the caller widget's parent directory is used.
+        The location of the package. If not specified, the calling widget's parent directory is used.
+    :param vendor:
+        The vendor from which to download the widget, given that :paramref:`.path` is an the form of ``author/project/version``.
+    :param version:
+        The project version to fetch. The latest is used if not specified. Only valid when :paramref:`.vendor` is used. 
 
     The widget may define a ``__load__(info)`` function, which will be called before callbacks are attached.
     """
 
-    return _load(client, name, path)
+    return _load(client, name, path, vendor)
 
 
 def _drop_module(name):
@@ -263,7 +360,7 @@ async def _drop(client, name, *, pop = True):
     else:
         await drop(asset.info)
 
-    drop_module = functools.partial(_drop_module, asset.name)
+    drop_module = functools.partial(_drop_module, module.__name__)
 
     await loop.run_in_executor(None, drop_module)
 

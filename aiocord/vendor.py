@@ -124,16 +124,23 @@ _manage_start_parser.add_argument(
     required = False
 )
 
+_manage_start_parser.add_argument(
+    '--vendor',
+    help = 'the vendor from which to load the widget (supported: github)',
+    default = None,
+    required = False
+)
+
 _main_start_enter_default_Events = {
     # required for voice
     _events.UpdateVoiceState
 }
 
-async def _main_start_enter(client, path, intents, shard_ids, shard_count):
+async def _main_start_enter(client, vendor, path, intents, shard_ids, shard_count):
 
-    path, name = os.path.split(path)
+    name = object()
 
-    await _widget.load(client, name, path)
+    await _widget.load(client, name, path, vendor = vendor)
 
     Events = set(_main_start_enter_default_Events)
 
@@ -142,7 +149,7 @@ async def _main_start_enter(client, path, intents, shard_ids, shard_count):
 
     intents |= _utils.get_eventful_intents(Events)
 
-    await client.start(intents, shard_ids, shard_count)
+    await client.start(intents = intents, shard_ids = shard_ids, shard_count = shard_count)
 
     await client.ready()
 
@@ -160,7 +167,7 @@ def _main_start(info):
 
     client = _get_client(info)
 
-    coro = _main_start_enter(client, info.path, info.intents, info.shard_ids, info.shard_count)
+    coro = _main_start_enter(client, info.vendor, info.path, info.intents, info.shard_ids, info.shard_count)
     name = loop.run_until_complete(coro)
 
     try:

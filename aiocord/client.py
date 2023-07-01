@@ -7796,9 +7796,9 @@ class Client:
             await asyncio.gather(*shard_event_coros)
 
     def start(self,
-              intents    : None | _enums.Intents                                     = None,
-              shard_ids  : None | list[int]                                          = None,
-              shard_count: None | int                                                = None,
+              intents    : None | _enums.Intents                                 = None,
+              shard_ids  : None | list[int]                                      = None,
+              shard_count: None | int                                            = None,
               present    : None | typing.Callable[[], _model.protocols.Presence] = None) -> typing.Awaitable[None]:
         
         """
