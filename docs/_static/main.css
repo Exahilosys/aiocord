@@ -300,4 +300,5 @@ div.body {
 .document .documentwrapper .bodywrapper .py.function,
 .document .documentwrapper .bodywrapper .py.data {
     border-left: 4px solid #ffffff0e;
+    border-bottom-width: 32px;
 }
