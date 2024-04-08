@@ -25,7 +25,6 @@ rst_prolog = """
 """
 
 extensions = [
-    'sphinx_rtd_theme',
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.extlinks',
