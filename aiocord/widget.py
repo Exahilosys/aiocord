@@ -327,7 +327,7 @@ def load(client : _client.Client,
     The widget may define a ``__load__(info)`` function, which will be called before callbacks are attached.
     """
 
-    return _load(client, name, path, vendor)
+    return _load(client, name, path, vendor, version = version)
 
 
 def _drop_module(name):

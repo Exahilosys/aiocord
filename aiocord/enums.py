@@ -363,6 +363,21 @@ class GatewayEvent(enum.StrEnum):
     |dsrc| 
     :ddoc:`Webhooks Update </topics/gateway-events#webhooks-update>` 
     """
+    create_entitlement                     = 'ENTITLEMENT_CREATE'
+    """
+    |dsrc|
+    :ddoc:`Entitlement Create` </monetization/entitlements#new-entitlement>
+    """
+    update_entitlement                     = 'ENTITLEMENT_UPDATE'
+    """
+    |dsrc|
+    :ddoc:`Entitlement Update` </monetization/entitlements#updated-entitlement>
+    """
+    delete_entitlement                     = 'ENTITLEMENT_DELETE'
+    """
+    |dsrc|
+    :ddoc:`Entitlement Delete` </monetization/entitlements#deleted-entitlement>
+    """
 
 
 class VoiceEvent(enum.StrEnum):

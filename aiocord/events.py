@@ -2356,6 +2356,66 @@ class DeleteStageInstance(typing.NamedTuple):
     """
 
 
+class CreateEntitlement(typing.NamedTuple):
+    
+    """
+    Dispatched on :attr:`.enums.GatewayEvent.create_entitlement`.
+    """
+
+    entitlement: _model.objects.Entitlement
+    """
+    .. list-table::
+        :width: 450px
+        :widths: 50 50
+        :header-rows: 1
+
+        * - Source
+          - Target
+        * - :attr: body
+          -
+    """
+
+
+class UpdateEntitlement(typing.NamedTuple):
+    
+    """
+    Dispatched on :attr:`.enums.GatewayEvent.delete_entitlement`.
+    """
+
+    entitlement: _model.objects.Entitlement
+    """
+    .. list-table::
+        :width: 450px
+        :widths: 50 50
+        :header-rows: 1
+
+        * - Source
+          - Target
+        * - :attr: body
+          -
+    """
+
+  
+class DeleteEntitlement(typing.NamedTuple):
+    
+    """
+    Dispatched on :attr:`.enums.GatewayEvent.delete_entitlement`.
+    """
+
+    entitlement: _model.objects.Entitlement
+    """
+    .. list-table::
+        :width: 450px
+        :widths: 50 50
+        :header-rows: 1
+
+        * - Source
+          - Target
+        * - :attr: body
+          -
+    """
+
+  
 class EnterVoice(typing.NamedTuple):
 
     """

@@ -10,7 +10,6 @@ from . import audio  as _audio
 __all__ = ('Player',)
 
 
-
 class Player:
 
     """

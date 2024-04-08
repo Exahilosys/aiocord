@@ -9,22 +9,24 @@ __all__ = (
     'ApplicationCommandOptionChoice', 'GuildApplicationCommandPermissions',
     'ApplicationCommandPermission', 'MessageActionRowComponent',
     'MessageButtonComponent', 'MessageSelectMenuComponent', 
+    'MessageSelectMenuComponentDefaultValue', 
     'MessageSelectMenuComponentOption', 'MessageTextInputComponent', 
     'Interaction', 'ApplicationCommandInteractionData', 
     'ApplicationCommandInteractionDataOption', 
     'MessageComponentInteractionData', 'ModalSubmitInteractionData', 
     'ResolvedInteractionData', 'MessageInteraction', 'InteractionResponse', 
     'MessageInteractionResponse', 'AutocompleteInteractionResponse',
-    'ModalInteractionResponse', 'Application', 'ApplicationInstallParams', 
+    'ModalInteractionResponse', 'Application', 
+    'ApplicationIntegrationTypeConfiguration','ApplicationInstallParams', 
     'ApplicationRoleConnectionMetadata', 'AuditLog', 'AuditLogEntry', 
     'OptionalAuditLogEntryInfo', 'AuditLogChange', 'AutoModerationRule', 
     'AutoModerationTriggerMetadata', 'AutoModerationAction', 
     'AutoModerationActionMetadata', 'Channel', 'Message', 'MessageActivity', 
-    'MessageReference', 'Reaction', 'FollowedChannel', 'Overwrite', 
-    'ThreadMetadata', 'ThreadMember', 'DefaultReaction', 'ForumTag', 'Embed', 
-    'EmbedThumbnail', 'EmbedVideo', 'EmbedImage', 'EmbedProvider', 
-    'EmbedAuthor', 'EmbedFooter', 'EmbedField', 'Attachment', 
-    'AllowedMentions', 'RoleSubscriptionData', 'Emoji', 'Guild', 
+    'MessageInteractionMetadata', 'MessageReference', 'Reaction', 
+    'FollowedChannel', 'Overwrite', 'ThreadMetadata', 'ThreadMember', 
+    'DefaultReaction', 'ForumTag', 'Embed', 'EmbedThumbnail', 'EmbedVideo', 
+    'EmbedImage', 'EmbedProvider', 'EmbedAuthor', 'EmbedFooter', 'EmbedField', 
+    'Attachment', 'AllowedMentions', 'RoleSubscriptionData', 'Emoji', 'Guild', 
     'GuildWidgetSettings', 'GuildWidget', 'GuildMember', 'Integration', 
     'IntegrationAccount', 'IntegrationApplication', 'Ban', 'WelcomeScreen', 
     'WelcomeScreenChannel', 'GuildOnboarding', 'GuildOnboardingPrompt', 
@@ -35,7 +37,7 @@ __all__ = (
     'ApplicationRoleConnection', 'VoiceState', 'VoiceRegion', 
     'Webhook', 'Presence', 'ClientStatus', 'Activity', 'ActivityTimestamps', 
     'ActivityParty', 'ActivityAssets', 'ActivitySecrets', 'ActivityButton', 
-    'Role', 'RoleTags', 'Team', 'TeamMember'
+    'Role', 'RoleTags', 'Team', 'TeamMember', 'SKU', 'Entitlement'
 )
 
 
@@ -51,10 +53,12 @@ class ApplicationCommand(typing.TypedDict):
     description_localizations : dict[_enums.Locale, _types.String]
     options                   : list['ApplicationCommandOption']
     default_member_permissions: _enums.Permissions
-    dm_permission             : _types.Boolean
+    # dm_permission             : _types.Boolean
     default_permission        : _types.Boolean
     nsfw                      : _types.Boolean
     version                   : _types.Snowflake
+    integration_types         : list[_enums.ApplicationIntegrationType]
+    contexts                  : list[_enums.InteractionContextType]
 
 
 class ApplicationCommandOption(typing.TypedDict):
@@ -116,14 +120,15 @@ class MessageButtonComponent(typing.TypedDict):
 
 class MessageSelectMenuComponent(typing.TypedDict):
     
-    type         : _enums.MessageComponentType
-    custom_id    : _types.String
-    options      : list['MessageSelectMenuComponentOption']
-    channel_types: list[_enums.ChannelType]
-    placeholder  : _types.String
-    min_values   : _types.Integer
-    max_values   : _types.Integer
-    disabled     : _types.Boolean
+    type          : _enums.MessageComponentType
+    custom_id     : _types.String
+    options       : list['MessageSelectMenuComponentOption']
+    channel_types : list[_enums.ChannelType]
+    placeholder   : _types.String
+    default_values: list['MessageSelectMenuComponentDefaultValue']
+    min_values    : _types.Integer
+    max_values    : _types.Integer
+    disabled      : _types.Boolean
 
 
 class MessageSelectMenuComponentOption(typing.TypedDict):
@@ -133,6 +138,12 @@ class MessageSelectMenuComponentOption(typing.TypedDict):
     description: _types.String
     emoji      : 'Emoji'
     default    : _types.Boolean
+
+
+class MessageSelectMenuComponentDefaultValue(typing.TypedDict):
+
+    id: _types.Snowflake
+    type: _enums.MessageSelectMenuComponentDefaultValueType
 
 
 class MessageTextInputComponent(typing.TypedDict):
@@ -150,21 +161,24 @@ class MessageTextInputComponent(typing.TypedDict):
 
 class Interaction(typing.TypedDict):
     
-    id             : _types.Snowflake
-    application_id : _types.Snowflake
-    type           : _enums.InteractionType
-    data           : typing.Union['ApplicationCommandInteractionData', 'MessageComponentInteractionData', 'ModalSubmitInteractionData', 'ResolvedInteractionData']
-    guild_id       : _types.Snowflake
-    channel        : 'Channel'
-    channel_id     : _types.Snowflake
-    member         : 'GuildMember'
-    user           : 'User'
-    token          : _types.String
-    version        : _types.Integer
-    message        : 'Message'
-    app_permissions: _types.String
-    locale         : _types.String
-    guild_locale   : _types.String
+    id                            : _types.Snowflake
+    application_id                : _types.Snowflake
+    type                          : _enums.InteractionType
+    data                          : typing.Union['ApplicationCommandInteractionData', 'MessageComponentInteractionData', 'ModalSubmitInteractionData', 'ResolvedInteractionData']
+    guild_id                      : _types.Snowflake
+    channel                       : 'Channel'
+    channel_id                    : _types.Snowflake
+    member                        : 'GuildMember'
+    user                          : 'User'
+    token                         : _types.String
+    version                       : _types.Integer
+    message                       : 'Message'
+    app_permissions               : _types.String
+    locale                        : _types.String
+    guild_locale                  : _types.String
+    entitlements                  : list['Entitlement']
+    authorizing_integration_owners: dict[_enums.ApplicationIntegrationType, _types.Snowflake]
+    context                       : _enums.InteractionContextType
 
 
 class ApplicationCommandInteractionData(typing.TypedDict):
@@ -270,6 +284,12 @@ class Application(typing.TypedDict):
     install_params                   : 'ApplicationInstallParams'
     custom_install_url               : _types.String
     role_connections_verification_url: _types.String
+    integration_types_config         : dict[_enums.ApplicationIntegrationType, 'ApplicationIntegrationTypeConfiguration']
+
+
+class ApplicationIntegrationTypeConfiguration(typing.TypedDict):
+
+    oauth2_install_params: 'ApplicationInstallParams'
 
 
 class ApplicationInstallParams(typing.TypedDict):
@@ -442,12 +462,24 @@ class Message(typing.TypedDict):
     stickers              : list['Sticker']
     position              : _types.Integer
     role_subscription_data: 'RoleSubscriptionData'
+    interaction_metadata  : 'MessageInteractionMetadata'
 
 
 class MessageActivity(typing.TypedDict):
     
     type    : _enums.MessageActivityType
     party_id: _types.String
+
+
+class MessageInteractionMetadata(typing.TypedDict):
+
+    id                             : _types.Snowflake
+    type                           : _enums.InteractionType
+    user_id                        : _types.Snowflake
+    authorizing_integration_owners : dict[_enums.ApplicationIntegrationType, typing.Any]
+    original_response_message_id   : _types.Snowflake
+    interacted_message_id          : _types.Snowflake
+    triggering_interaction_metadata: 'MessageInteractionMetadata'
 
 
 class MessageReference(typing.TypedDict):
@@ -1103,3 +1135,26 @@ class TeamMember(typing.TypedDict):
     permissions     : list[_types.String]
     team_id         : _types.Snowflake
     user            : 'User'
+
+
+class SKU(typing.TypedDict):
+
+    id            : _types.Snowflake
+    type          : _enums.SKUType
+    application_id: _types.Snowflake
+    name          : _types.String
+    slug          : _types.String
+    flags         : _enums.SKUFlags
+
+
+class Entitlement(typing.TypedDict):
+
+    id            : _types.Snowflake
+    sku_id        : _types.Snowflake
+    application_id: _types.Snowflake
+    user_id       : _types.Snowflake
+    type          : _enums.EntitlementType
+    deleted       : _types.Boolean
+    starts_at     : _types.ISO8601Timestamp
+    ends_at       : _types.ISO8601Timestamp
+    guild_id      : _types.Snowflake

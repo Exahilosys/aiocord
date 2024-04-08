@@ -6,7 +6,8 @@ __all__ = (
     'Permissions', 'ApplicationCommandOptionType', 'ChannelType', 
     'MessageComponentType', 'MessageButtonComponentStyle', 
     'MessageTextInputComponentStyle', 'InteractionType', 
-    'InteractionResponseType', 'ApplicationFlags', 
+    'InteractionContextType', 'InteractionResponseType', 
+    'ApplicationIntegrationType', 'ApplicationFlags', 
     'ApplicationRoleConnectionMetadataType', 'AuditLogEvent', 
     'OptionalAuditLogEntryInfoOverwrittenEntityType', 
     'AutoModerationTriggerType', 'AutoModerationRuleKeywordPresetType', 
@@ -24,7 +25,8 @@ __all__ = (
     'StickerFormatType', 'UserFlags', 'UserPremiumType', 
     'ConnectionVisibilityType', 'WebhookType', 'ActivityType', 
     'ActivityFlags', 'TeamMemberMembershipState', 'WidgetStyleOption',
-    'SpeechFlags', 'TimestampStyle'
+    'SpeechFlags', 'TimestampStyle', 'SKUType', 'SKUFlags', 'EntitlementType',
+    'EntitlementOwnerType'
 )
 
 
@@ -161,6 +163,8 @@ class Permissions(enum.IntFlag, metaclass = EnumMeta):
     moderate_members                    = 1 << 40
     view_creator_monetization_analytics = 1 << 41
     use_soundboard                      = 1 << 42
+    create_guild_expressions            = 1 << 43
+    create_events                       = 1 << 44
     send_voice_messages                 = 1 << 46
 
 
@@ -203,6 +207,7 @@ class ChannelType(enum.IntEnum, metaclass = EnumMeta):
     guild_stage_voice   = 13
     guild_directory     = 14
     guild_forum         = 15
+    guild_media         = 16
 
 
 
@@ -248,12 +253,23 @@ class MessageButtonComponentStyle(enum.IntEnum, metaclass = EnumMeta):
     danger    = 4
     link      = 5
 
+class MessageSelectMenuComponentDefaultValueType(enum.StrEnum, metaclass = EnumMeta):
+
+
+    """
+    |dsrc| 
+    :ddoc:`Select Meny Default Value Types </interactions/message-components#select-menu-object-select-default-value-structure>`
+    """
+
+    user = 'user'
+    role = 'role'
+    channel = 'channel'
 
 class MessageTextInputComponentStyle(enum.IntEnum, metaclass = EnumMeta):
 
     """
     |dsrc| 
-    :ddoc:`Text Inputs Text Input Styles </interactions/message-components#text-inputs-text-input-styles>`
+    :ddoc:`Text Input Styles </interactions/message-components#text-inputs-text-input-styles>`
     """
 
     short = 1
@@ -274,6 +290,18 @@ class InteractionType(enum.IntEnum, metaclass = EnumMeta):
     modal_submit                     = 5
 
 
+class InteractionContextType(enum.IntEnum, metaclass = EnumMeta):
+
+    """
+    |dsrc| 
+    :ddoc:`Interaction Context Types </interactions/receiving-and-responding#interaction-object-interaction-context-types>`
+    """
+
+    guild           = 0
+    bot_dm          = 1
+    private_channel = 2
+    
+
 class InteractionResponseType(enum.IntEnum, metaclass = EnumMeta):
 
     """
@@ -288,6 +316,18 @@ class InteractionResponseType(enum.IntEnum, metaclass = EnumMeta):
     update_message                          = 7
     application_command_autocomplete_result = 8
     modal                                   = 9
+    premium_required                        = 10
+
+
+class ApplicationIntegrationType(enum.IntEnum, metaclass = EnumMeta):
+
+    """
+    |dsrc| 
+    :ddoc:`Application Integration Types </resources/application#application-object-application-integration-types>`
+    """
+
+    guild_install = 0
+    user_install  = 1
 
 
 class ApplicationFlags(enum.IntFlag, metaclass = EnumMeta):
@@ -991,3 +1031,47 @@ class TimestampStyle(enum.StrEnum):
     short_date_time = 'f'
     long_date_time  = 'F'
     relative_time   = 'R'
+
+
+class SKUType(enum.IntEnum):
+
+    """
+    |dsrc|
+    :ddoc:`SKU Types </monetization/skus#sku-object-sku-types>`
+    """
+
+    subscription       = 5
+    subscription_group = 6
+
+
+class SKUFlags(enum.IntFlag):
+
+    """
+    |dsrc|
+    :ddoc:`SKU Flags </monetization/skus#sku-object-sku-flags>`
+    """
+
+    available          = 1 << 2
+    guild_subscription = 1 << 7
+    user_subscription  = 1 << 8
+
+
+class EntitlementType(enum.IntEnum):
+
+    """
+    |dsrc|
+    :ddoc:`Entitlement Types </monetization/entitlements#entitlement-object-entitlement-types>`
+    """
+
+    application_subscription = 8
+
+
+class EntitlementOwnerType(enum.IntEnum):
+
+    """
+    |dsrc|
+    :ddoc:`Entitlement Owner Type </monetization/entitlements#create-test-entitlement>`
+    """
+
+    guild_subscription = 1
+    user_subscription  = 2

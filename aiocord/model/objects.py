@@ -48,9 +48,9 @@ _ApplicationCommand_fields = {
     'default_member_permissions': vessel.SetField(
         create = lambda path, data: _enums.Permissions(data)
     ),
-    'dm_permission': vessel.SetField(
-        create = lambda path, data: _types.Boolean(data)
-    ),
+    # 'dm_permission': vessel.SetField(
+    #     create = lambda path, data: _types.Boolean(data)
+    # ),
     'default_permission': vessel.SetField(
         create = lambda path, data: _types.Boolean(data)
     ),
@@ -59,6 +59,12 @@ _ApplicationCommand_fields = {
     ),
     'version': vessel.SetField(
         create = lambda path, data: _types.Snowflake(data)
+    ),
+    'integration_types': vessel.SetField(
+        create = lambda path, data: _types.Collection(_enums.ApplicationIntegrationType, data)
+    ),
+    'contexts': vessel.SetField(
+        create = lambda path, data: _types.Collection(_enums.InteractionContextType, data)
     )
 }
 
@@ -133,7 +139,7 @@ class ApplicationCommand(_types.Object[_protocols.ApplicationCommand], fields = 
         select = lambda root: root['dm_permission']
     )
     """
-    |dsrc| **dm_permission**
+    |dsrc| **dm_permission** (deprecated)
     """
     default_permission: _types.Boolean = vessel.GetField(
         select = lambda root: root['default_permission']
@@ -152,6 +158,18 @@ class ApplicationCommand(_types.Object[_protocols.ApplicationCommand], fields = 
     )
     """
     |dsrc| **version**
+    """
+    integration_types: _types.Collection[_enums.ApplicationIntegrationType] = vessel.GetField(
+        select = lambda root: root['integration_types']
+    )
+    """
+    |dsrc| **integration_types**
+    """
+    context_types: _types.Collection[_enums.InteractionContextType] = vessel.GetField(
+        select = lambda root: root['contexts']
+    )
+    """
+    |dsrc| **contexts**
     """
 
     def mention(self):
@@ -589,6 +607,9 @@ _MessageSelectMenuComponent_fields = {
     'placeholder': vessel.SetField(
         create = lambda path, data: _types.String(data)
     ),
+    'default_values': vessel.SetField(
+        create = lambda path, data: _types.Collection(MessageSelectMenuComponentDefaultValue, data)
+    ),
     'min_values': vessel.SetField(
         create = lambda path, data: _types.Integer(data)
     ),
@@ -636,6 +657,12 @@ class MessageSelectMenuComponent(_types.Object[_protocols.MessageSelectMenuCompo
     )
     """
     |dsrc| **placeholder**
+    """
+    default_values: _types.Collection['MessageSelectMenuComponentDefaultValue'] = vessel.GetField(
+        select = lambda root: root['default_values']
+    )
+    """
+    |dsrc| **default_values**
     """
     min_values: _types.Integer = vessel.GetField(
         select = lambda root: root['min_values']
@@ -713,6 +740,33 @@ class MessageSelectMenuComponentOption(_types.Object[_protocols.MessageSelectMen
     |dsrc| **default**
     """
 
+_MessageSelectMenuComponentDefaultValue_fields = {
+    'id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'type': vessel.SetField(
+        create = lambda path, data: _enums.MessageSelectMenuComponentDefaultValueType(data)
+    )
+}
+
+class MessageSelectMenuComponentDefaultValue(_types.Object[_protocols.MessageSelectMenuComponentDefaultValue], fields = _MessageSelectMenuComponentDefaultValue_fields):
+
+    """
+    |dsrc| :ddoc:`Select Default Value Structure </interactions/message-components#select-menu-object-select-default-value-structure>`
+    """
+
+    id: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['id']
+    )
+    """
+    |dsrc| **id**
+    """
+    type: _enums.MessageSelectMenuComponentDefaultValueType = vessel.GetField(
+        select = lambda root: root['type']
+    )
+    """
+    |dsrc| **type**
+    """
 
 _MessageTextInputComponent_fields = {
     'type': vessel.SetField(
@@ -867,6 +921,23 @@ _Interaction_fields = {
     ),
     'guild_locale': vessel.SetField(
         create = lambda path, data: _types.String(data)
+    ),
+    'entitlements': vessel.SetField(
+        create = lambda path, data: _types.Collection(Entitlement, data)
+    ),
+    'authorizing_integration_owners': vessel.SetField(
+        create = lambda path, data: dict(
+            map(
+                lambda item: (
+                    _enums.ApplicationIntegrationType(item[0]),
+                    _types.Snowflake(item[1])
+                ),
+                data.items()
+            )
+        )
+    ),
+    'context': vessel.SetField(
+        create = lambda path, data: _enums.InteractionContextType(data)
     )
 }
 
@@ -967,6 +1038,24 @@ class Interaction(_types.Object[_protocols.Interaction], fields = _Interaction_f
     """
     |dsrc| **guild_locale**
     """
+    entitlements: _types.Collection['Entitlement'] = vessel.GetField(
+        select = lambda root: root['entitlements']
+    )
+    """
+    |dsrc| **entitlements**
+    """
+    authorizing_integration_owners: dict[_enums.ApplicationIntegrationType, _types.Snowflake] = vessel.GetField(
+        select = lambda root: root['authorizing_integration_owners']
+    )
+    """
+    |dsrc| **authorizing_integration_owners**
+    """
+    context: _enums.InteractionContextType = vessel.GetField(
+        select = lambda root: root['context']
+    )
+    """
+    |dsrc| **context**
+    """
 
 
 _ApplicationCommandInteractionData_fields = {
@@ -998,7 +1087,7 @@ _ApplicationCommandInteractionData_fields = {
 def _ApplicationCommandInteractionData_keyify(path, data):
 
     data_id = data['id']
-    core_id = _types.Snowflake(data_id)
+    core_id: _types.Snowflake(data_id)
 
     return core_id
 
@@ -1428,6 +1517,17 @@ _Application_fields = {
     ),
     'role_connections_verification_url': vessel.SetField(
         create = lambda path, data: _types.String(data)
+    ),
+    'integration_types_config': vessel.SetField(
+        create  = lambda path, data: dict(
+            map(
+                lambda item: (
+                    _enums.ApplicationIntegrationType(item[0]),
+                    ApplicationIntegrationTypeConfiguration(item[1])
+                ),
+                data.items()
+            )
+        )
     )
 }
 
@@ -1435,7 +1535,7 @@ _Application_fields = {
 def _Application_identify(path, data):
 
     data_id = data['id']
-    core_id = _types.Snowflake(data_id)
+    core_id: _types.Snowflake(data_id)
 
     return core_id
 
@@ -1572,6 +1672,12 @@ class Application(_types.Object[_protocols.Application], fields = _Application_f
     """
     |dsrc| **role_connections_verification_url**
     """
+    integration_type_configs: dict[_enums.ApplicationIntegrationType, 'ApplicationIntegrationTypeConfiguration'] = vessel.GetField(
+        select = lambda root: root['role_connections_verification_url']
+    )
+    """
+    |dsrc| **integration_types_config**
+    """
 
     def icon_url(self, **kwargs: typing.Unpack[_images._make_hint]):
 
@@ -1596,6 +1702,27 @@ class Application(_types.Object[_protocols.Application], fields = _Application_f
         """
 
         return _images.application_asset(self.id, asset_id, **kwargs)
+
+
+_ApplicationIntegrationTypeConfiguration_fields = {
+    'oauth2_install_params': vessel.SetField(
+        create = lambda path, data: ApplicationInstallParams(data)
+    )
+}
+
+
+class ApplicationIntegrationTypeConfiguration(_types.Object[_protocols.ApplicationIntegrationTypeConfiguration], fields = _ApplicationIntegrationTypeConfiguration_fields):
+
+    """
+    |dsrc| :ddoc:`Application Integration Type Configuration Object </resources/application#application-object-application-integration-type-configuration-object>`
+    """
+
+    oauth2_install_params: 'ApplicationInstallParams' = vessel.GetField(
+        select = lambda root: root['oauth2_install_params']
+    )
+    """
+    |dsrc| **oauth2_install_params**
+    """
 
 
 _ApplicationInstallParams_fields = {
@@ -2062,7 +2189,7 @@ _AutoModerationRule_fields = {
 def _AutoModerationRule_identify(path, data):
 
     data_id = data['id']
-    core_id = _types.Snowflake(data_id)
+    core_id: _types.Snowflake(data_id)
 
     return core_id
 
@@ -2392,7 +2519,7 @@ _Channel_fields = {
 def _Channel_identify(path, data):
 
     data_id = data['id']
-    core_id = _types.Snowflake(data_id)
+    core_id: _types.Snowflake(data_id)
 
     return core_id
 
@@ -2708,9 +2835,9 @@ _Message_fields = {
     'referenced_message': vessel.SetField(
         create = lambda path, data: Message(data)
     ),
-    'interaction': vessel.SetField(
-        create = lambda path, data: MessageInteraction(data)
-    ),
+    # 'interaction': vessel.SetField(
+    #     create = lambda path, data: MessageInteraction(data)
+    # ),
     'thread': vessel.SetField(
         create = lambda path, data: Channel(data)
     ),
@@ -2728,6 +2855,9 @@ _Message_fields = {
     ),
     'role_subscription_data': vessel.SetField(
         create = lambda path, data: RoleSubscriptionData(data)
+    ),
+    'interaction_metadata': vessel.SetField(
+        create = lambda path, data: MessageInteractionMetadata(data)
     )
 }
 
@@ -2886,7 +3016,7 @@ class Message(_types.Object[_protocols.Message], fields = _Message_fields):
         select = lambda root: root['interaction']
     )
     """
-    |dsrc| **interaction**
+    |dsrc| **interaction** (deprecated)
     """
     thread: 'Channel' = vessel.GetField(
         select = lambda root: root['thread']
@@ -2917,6 +3047,91 @@ class Message(_types.Object[_protocols.Message], fields = _Message_fields):
     )
     """
     |dsrc| **role_subscription_data**
+    """
+    interaction_metadata: 'MessageInteractionMetadata' = vessel.GetField(
+        select = lambda root: root['interaction_metadata']
+    )
+    """
+    |dsrc| **interaction_metadata**
+    """
+
+
+_MessageInteractionMetadata_fields = {
+    'id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data['id'])
+    ),
+    'type': vessel.SetField(
+        create = lambda path, data: _enums.InteractionType(data['type'])
+    ),
+    'user_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data['user_id'])
+    ),
+    'authorizing_integration_owners': vessel.SetField(
+        create = lambda path, data: dict(
+            map(
+                lambda item: (
+                    _enums.ApplicationIntegrationType(item[0]),
+                    item[1]
+                ),
+                data.items()
+            )
+        )
+    ),
+    'original_response_message_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data['original_response_message_id'])
+    ),
+    'triggering_interaction_metadata': vessel.SetField(
+        create = lambda path, data: MessageInteractionMetadata(data['triggering_interaction_metadata'])
+    )
+}
+
+class MessageInteractionMetadata(_types.Object[_protocols.MessageInteractionMetadata], fields = _MessageInteractionMetadata_fields):
+
+    """
+    |dsrc| :ddoc:`Message Interaction Metadata Structure </resources/channel#message-interaction-metadata-object-message-interaction-metadata-structure`
+    """
+
+    id: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['id']
+    )
+    """
+    |dsrc| **id**
+    """
+    type: _enums.InteractionType = vessel.GetField(
+        select = lambda root: root['type']
+    )
+    """
+    |dsrc| **type**
+    """
+    user_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['user_id']
+    )
+    """
+    |dsrc| **user_id**
+    """
+    authorizing_integration_owners: dict[_enums.ApplicationIntegrationType, _enums.InteractionContextType] = vessel.GetField(
+        select = lambda root: root['authorizing_integration_owners']
+    )
+    """
+    |dsrc| **authorizing_integration_owners**
+    """
+    original_response_message_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['original_response_message_id']
+    )
+    """
+    |dsrc| **original_response_message_id**
+    """
+    interacted_message_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['interacted_message_id']
+    )
+    """
+    |dsrc| **interacted_message_id**
+    """
+    triggering_interaction_metadata: 'MessageInteractionMetadata' = vessel.GetField(
+        select = lambda root: root['triggering_interaction_metadata']
+    )
+    """
+    |dsrc| **triggering_interaction_metadata**
     """
     
 
@@ -7624,3 +7839,117 @@ class TeamMember(_types.Object[_protocols.TeamMember], fields = _TeamMember_fiel
     """
     |dsrc| **user**
     """
+
+
+_SKU_fields = {
+    'id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'type': vessel.SetField(
+        create = lambda path, data: _enums.SKUType(data)
+    ),
+    'application_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'name': vessel.SetField(
+        create = lambda path, data: _types.String(data)
+    ),
+    'slug': vessel.SetField(
+        create = lambda path, data: _types.String(data)
+    ),
+    'flags': vessel.SetField(
+        create = lambda path, data: _enums.SKUFlags(data)
+    )
+}
+
+
+class SKU(_types.Object[_protocols.SKU], fields = _SKU_fields):
+
+    """
+    |dsrc| :ddoc:`SKU Structure </monetization/skus#sku-object-sku-structure>`
+    """
+
+    id: _types.Snowflake = vessel.GetField(
+        select = lambda root: ['id']
+    )
+    type: _enums.SKUType = vessel.GetField(
+        select = lambda root: ['type']
+    )
+    application_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: ['application_id']
+    )
+    name: _types.String = vessel.GetField(
+        select = lambda root: ['name']
+    )
+    slug: _types.String = vessel.GetField(
+        select = lambda root: ['slug']
+    )
+    flags: _enums.SKUFlags = vessel.GetField(
+        select = lambda root: ['flags']
+    )
+
+
+_Entitlement_fields = {
+    'id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'sku_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'application_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'user_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    ),
+    'type': vessel.SetField(
+        create = lambda path, data: _enums.EntitlementType(data)
+    ),
+    'deleted': vessel.SetField(
+        create = lambda path, data: data
+    ),
+    'starts_at': vessel.SetField(
+        create = lambda path, data: _types.ISO8601Timestamp(data)
+    ),
+    'ends_at': vessel.SetField(
+        create = lambda path, data: _types.ISO8601Timestamp(data)
+    ),
+    'guild_id': vessel.SetField(
+        create = lambda path, data: _types.Snowflake(data)
+    )
+}
+
+
+class Entitlement(_types.Object[_protocols.Entitlement], fields = _Entitlement_fields):
+
+    """
+    |dsrc| :ddoc:`Entitlement Structure </monetization/entitlements#entitlement-object-entitlement-structure>`
+    """
+
+    id: _types.Snowflake = vessel.GetField(
+        select = lambda root: _types.Snowflake(root['id'])
+    )
+    sku_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: _types.Snowflake(root['sku_id'])
+    )
+    application_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: _types.Snowflake(root['application_id'])
+    )
+    user_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: _types.Snowflake(root['user_id'])
+    )
+    type = _enums.EntitlementType = vessel.GetField(
+        select = lambda root: _enums.EntitlementType(root['type'])
+    )
+    deleted: _types.Boolean = vessel.GetField(
+        select = lambda path, data: _types.Boolean(data)
+    )
+    starts_at: _types.ISO8601Timestamp = vessel.GetField(
+        select = lambda root: _types.ISO8601Timestamp(root['starts_at'])
+    )
+    ends_at: _types.ISO8601Timestamp = vessel.GetField(
+        select = lambda root: _types.ISO8601Timestamp(root['ends_at'])
+    )
+    guild_id: _types.Snowflake = vessel.GetField(
+        select = lambda root: _types.Snowflake(root['guild_id'])
+    )

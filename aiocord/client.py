@@ -5287,6 +5287,106 @@ class Client:
 
         return self._request(_http.routes.get_self_authorization_information, _resolve, path)
     
+    class ___get_skus_hint(typing.TypedDict):
+
+        pass
+
+    def get_skus(self,
+                 application_id: _model.types.Snowflake,
+                 /,
+                 **fields: ___get_skus_hint):
+        
+        """
+        Use :data:`.http.routes.get_skus`.
+        """
+
+        path = [application_id]
+
+        def _resolve(data):
+            return list(map(_model.objects.SKU, data))
+        
+        return self._request(_http.routes.get_skus, _resolve, path)
+        
+    class ___get_entitlements_hint(typing.TypedDict):
+
+        user_id      : typing.Optional[_model.types.Snowflake]
+        sku_ids      : typing.Optional[list[_model.types.String]]
+        before       : typing.Optional[_model.types.Snowflake]
+        after        : typing.Optional[_model.types.Snowflake]
+        limit        : typing.Optional[_model.types.Integer]
+        guild_id     : typing.Optional[_model.types.Snowflake]
+        exclude_ended: typing.Optional[_model.types.Boolean]
+
+    def get_entitlements(self,
+                         application_id: _model.types.Snowflake,
+                         /,
+                         **fields: ___get_entitlements_hint):
+        
+        """
+        Use :data:`.http.routes.get_entitlements`.
+        """
+
+        path = [application_id]
+
+        try:
+            sku_ids = fields['sku_ids']
+        except KeyError:
+            pass
+        else:
+            fields['sku_ids'] = ','.join(sku_ids)
+
+        query = fields
+
+        def _resolve(data):
+            return list(map(_model.objects.Entitlement, data))
+
+        return self._request(_http.routes.get_entitlements, _resolve, path, query = query)
+    
+    class ___create_entitlement_hint(typing.TypedDict):
+
+        sku_id    : _model.types.String
+        owner_id  : _model.types.Snowflake
+        owner_type: _model.enums.EntitlementOwnerType
+
+    def create_entitlement(self,
+                           application_id: _model.types.Snowflake,
+                           /,
+                           **fields: ___create_entitlement_hint):
+        
+        """
+        Use :data:`.http.routes.create_entitlement`.
+        """
+
+        path = [application_id]
+
+        json = fields
+
+        def _resolve(data):
+            return _model.objects.Entitlement(data)
+
+        return self._request(_http.routes.create_entitlement, _resolve, path, json = json)
+
+    class ___delete_entitlement_hint(typing.TypedDict):
+
+        pass
+
+    def delete_entitlement(self,
+                           application_id: _model.types.Snowflake,
+                           entitlement_id: _model.types.Snowflake,
+                           /,
+                           **fields: ___delete_entitlement_hint):
+        
+        """
+        Use :data:`.http.routes.delete_entitlement`.
+        """
+
+        path = [application_id, entitlement_id]
+
+        def _resolve(data):
+            return None
+
+        return self._request(_http.routes.delete_entitlement, _resolve, path)
+
     def _create_sentinel(self, Event, check, timeout = None):
 
         event = asyncio.Event()
@@ -7522,6 +7622,42 @@ class Client:
 
         self._dispatch(core_event)
 
+    async def _handle_gateway_create_entitlement(self, shard, data):
+
+        # https://discord.com/developers/docs/monetization/entitlements#new-entitlement
+
+        core_entitlement = _model.objects.Entitlement(data)
+
+        core_event = _events.CreateEntitlement(
+            entitlement = core_entitlement
+        )
+
+        self._dispatch(core_event)
+
+    async def _handle_gateway_update_entitlement(self, shard, data):
+
+        # https://discord.com/developers/docs/monetization/entitlements#updated-entitlement
+
+        core_entitlement = _model.objects.Entitlement(data)
+
+        core_event = _events.UpdateEntitlement(
+            entitlement = core_entitlement
+        )
+
+        self._dispatch(core_event)
+
+    async def _handle_gateway_delete_entitlement(self, shard, data):
+
+        # https://discord.com/developers/docs/monetization/entitlements#deleted-entitlement
+
+        core_entitlement = _model.objects.Entitlement(data)
+
+        core_event = _events.DeleteEntitlement(
+            entitlement = core_entitlement
+        )
+
+        self._dispatch(core_event)
+
     async def _handle_voice_enter(self, voice, data):
 
         data_guild_id = voice.guild_id
@@ -7863,14 +7999,12 @@ class Client:
         async def update_voice_state_check(core, copy):
             return core.voice_state.user_id == self._cache.user.id and core.voice_state.guild_id == guild_id and core.voice_state.channel_id == channel_id
 
-        update_voice_state_coro = self._create_sentinel(_events.UpdateVoiceState, update_voice_state_check)
-        update_voice_state_task = asyncio.create_task(update_voice_state_coro)
+        update_voice_state_task = self._create_sentinel(_events.UpdateVoiceState, update_voice_state_check)
 
         async def update_voice_server_check(core):
             return core.guild.id == guild_id
 
-        update_voice_server_coro = self._create_sentinel(_events.UpdateVoiceServer, update_voice_server_check)
-        update_voice_server_task = asyncio.create_task(update_voice_server_coro)
+        update_voice_server_task = self._create_sentinel(_events.UpdateVoiceServer, update_voice_server_check)
 
         await self._create_self_voice_state(
             guild_id = guild_id, 

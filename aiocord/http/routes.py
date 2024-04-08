@@ -79,7 +79,8 @@ __all__ = (
     'create_webhook_message_github_compatible', 'get_webhook_message', 
     'update_webhook_message', 'delete_webhook_message', 'get_gateway', 
     'get_gateway_bot', 'get_self_application_information',  
-    'get_self_authorization_information'
+    'get_self_authorization_information', 'get_skus', 'get_entitlements', 
+    'create_entitlement', 'delete_entitlement'
 )
 
 
@@ -1182,4 +1183,28 @@ get_self_authorization_information = Route('GET', '/oauth2/@me')
 """
 |dsrc|
 :ddoc:`Get Current Authorization Information </topics/oauth2#get-current-authorization-information>`
+"""
+
+get_skus = Route('GET', '/applications/{0}/skus')
+"""
+|dsrc|
+:ddoc:`List SKUs </monetization/skus#list-skus>`
+"""
+
+get_entitlements = Route('GET', '/applications/{0}/entitlements')
+"""
+|dsrc|
+:ddoc:`List Entitlements <//monetization/entitlements#create-test-entitlement>`
+"""
+
+create_entitlement = Route('POST', '/applications/{0}/entitlements')
+"""
+|dsrc|
+:ddoc:`Create Test Entitlement </monetization/entitlements#create-test-entitlement>`
+"""
+
+delete_entitlement = Route('DELETE', '/applications/{0}/entitlements/{1}')
+"""
+|dsrc|
+:ddoc:`Delete Test Entitlement </monetization/entitlements#delete-test-entitlement>`
 """

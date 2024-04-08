@@ -50,7 +50,7 @@ class Timestamp(Integer):
         The datetime object representation.
         """
 
-        return datetime.datetime.fromtimestamp(self)
+        return datetime.datetime.fromtimestamp(self, tz = datetime.timezone.utc)
     
     def mention(self, style: _enums.TimestampStyle = None):
 
@@ -101,4 +101,4 @@ class Snowflake(String):
         The internal timestamp.
         """
 
-        return Timestamp((int(self) >> 22) + epoch)
+        return Timestamp(((int(self) >> 22) + epoch) / 1000)

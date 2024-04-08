@@ -1,6 +1,4 @@
 import typing
-import sys
-import os
 import asyncio
 import subprocess
 
