@@ -6564,7 +6564,7 @@ class Client:
             guild_role = core_guild_role
         )
 
-        self._dispatch(core_event, copy_event = copy_event)
+        self._dispatch(core_event, copy_event)
 
     async def _handle_gateway_delete_guild_role(self, shard, data):
 
