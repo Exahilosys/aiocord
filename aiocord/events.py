@@ -1104,10 +1104,8 @@ class ReceiveGuildMembers(typing.NamedTuple):
         * - :code:`chunk_index`
           -
     """
-    chunk_indexes  : set[int]
+    chunk_count    : int
     """
-    The remaining indexes (receiving is complete when this is empty).
-
     .. list-table::
         :width: 450px
         :widths: 50 50
@@ -1115,7 +1113,7 @@ class ReceiveGuildMembers(typing.NamedTuple):
 
         * - Source
           - Target
-        * - internal
+        * - :code:`chunk_count`
           -
     """
 
@@ -2486,7 +2484,7 @@ class Speak(typing.NamedTuple):
     Dispatched on :attr:`.enums.VoiceEvent.speak`.
     """
 
-    guild       : _model.objects.Guild
+    guild: _model.objects.Guild
     """
     .. list-table::
         :width: 450px

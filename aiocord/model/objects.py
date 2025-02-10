@@ -1087,7 +1087,7 @@ _ApplicationCommandInteractionData_fields = {
 def _ApplicationCommandInteractionData_keyify(path, data):
 
     data_id = data['id']
-    core_id: _types.Snowflake(data_id)
+    core_id = _types.Snowflake(data_id)
 
     return core_id
 
@@ -1503,6 +1503,9 @@ _Application_fields = {
     'cover_image': vessel.SetField(
         create = lambda path, data: _types.String(data)
     ),
+    'approximate_user_install_count': vessel.SetField(
+        create = lambda path, data: _types.Integer(data)
+    ),
     'flags': vessel.SetField(
         create = lambda path, data: _enums.ApplicationFlags(data)
     ),
@@ -1535,7 +1538,7 @@ _Application_fields = {
 def _Application_identify(path, data):
 
     data_id = data['id']
-    core_id: _types.Snowflake(data_id)
+    core_id = _types.Snowflake(data_id)
 
     return core_id
 
@@ -1647,6 +1650,12 @@ class Application(_types.Object[_protocols.Application], fields = _Application_f
     )
     """
     |dsrc| **flags**
+    """
+    approximate_user_install_count: _types.Integer = vessel.GetField(
+        select = lambda root: root['approximate_user_install_count']
+    )
+    """
+    |dsrc| **approximate_user_install_count**
     """
     tags: _types.Collection[_types.String] = vessel.GetField(
         select = lambda root: root['tags']
@@ -2189,7 +2198,7 @@ _AutoModerationRule_fields = {
 def _AutoModerationRule_identify(path, data):
 
     data_id = data['id']
-    core_id: _types.Snowflake(data_id)
+    core_id = _types.Snowflake(data_id)
 
     return core_id
 
@@ -2519,7 +2528,7 @@ _Channel_fields = {
 def _Channel_identify(path, data):
 
     data_id = data['id']
-    core_id: _types.Snowflake(data_id)
+    core_id = _types.Snowflake(data_id)
 
     return core_id
 
@@ -3058,13 +3067,13 @@ class Message(_types.Object[_protocols.Message], fields = _Message_fields):
 
 _MessageInteractionMetadata_fields = {
     'id': vessel.SetField(
-        create = lambda path, data: _types.Snowflake(data['id'])
+        create = lambda path, data: _types.Snowflake(data)
     ),
     'type': vessel.SetField(
-        create = lambda path, data: _enums.InteractionType(data['type'])
+        create = lambda path, data: _enums.InteractionType(data)
     ),
-    'user_id': vessel.SetField(
-        create = lambda path, data: _types.Snowflake(data['user_id'])
+    'user': vessel.SetField(
+        create = lambda path, data: User(data)
     ),
     'authorizing_integration_owners': vessel.SetField(
         create = lambda path, data: dict(
@@ -3078,10 +3087,10 @@ _MessageInteractionMetadata_fields = {
         )
     ),
     'original_response_message_id': vessel.SetField(
-        create = lambda path, data: _types.Snowflake(data['original_response_message_id'])
+        create = lambda path, data: _types.Snowflake(data)
     ),
     'triggering_interaction_metadata': vessel.SetField(
-        create = lambda path, data: MessageInteractionMetadata(data['triggering_interaction_metadata'])
+        create = lambda path, data: MessageInteractionMetadata(data)
     )
 }
 
@@ -3103,11 +3112,11 @@ class MessageInteractionMetadata(_types.Object[_protocols.MessageInteractionMeta
     """
     |dsrc| **type**
     """
-    user_id: _types.Snowflake = vessel.GetField(
-        select = lambda root: root['user_id']
+    user: 'User' = vessel.GetField(
+        select = lambda root: root['user']
     )
     """
-    |dsrc| **user_id**
+    |dsrc| **user**
     """
     authorizing_integration_owners: dict[_enums.ApplicationIntegrationType, _enums.InteractionContextType] = vessel.GetField(
         select = lambda root: root['authorizing_integration_owners']
@@ -3210,6 +3219,26 @@ class MessageReference(_types.Object[_protocols.MessageReference], fields = _Mes
     )
     """
     |dsrc| **fail_if_not_exists**
+    """
+
+_MessageSnapshot_fields = {
+    'message': vessel.SetField(
+        create = lambda path, data: Message(data)
+    )
+}
+
+
+class MessageSnapshot(_types.Object[_protocols.MessageSnapshot], fields = _MessageSnapshot_fields):
+
+    """
+    |dsrc| :ddoc:`Message Snapshot Structure </resources/message#message-snapshot-object>`
+    """
+
+    message: _types.Snowflake = vessel.GetField(
+        select = lambda root: root['message']
+    )
+    """
+    |dsrc| **message**
     """
 
 
@@ -4930,6 +4959,9 @@ _GuildMember_fields = {
     'avatar': vessel.SetField(
         create = lambda path, data: _types.String(data)
     ),
+    'banner': vessel.SetField(
+        create = lambda path, data: _types.String(data)
+    ),
     'roles': vessel.SetField(
         create = lambda path, data: _types.Collection(_types.Snowflake, data)
     ),
@@ -4997,6 +5029,12 @@ class GuildMember(_types.Object[_protocols.GuildMember], fields = _GuildMember_f
     )
     """
     |dsrc| **avatar**
+    """
+    banner: typing.Union[None, _types.String] = vessel.GetField(
+        select = lambda root: root['banner']
+    )
+    """
+    |dsrc| **banner**
     """
     roles: _types.Collection[_types.Snowflake] = vessel.GetField(
         select = lambda root: root['roles']
@@ -6482,6 +6520,9 @@ _User_fields = {
     'discriminator': vessel.SetField(
         create = lambda path, data: _types.String(data)
     ),
+    'global_name': vessel.SetField(
+        create = lambda path, data: _types.String(data)
+    ),
     'avatar': vessel.SetField(
         create = lambda path, data: _types.String(data)
     ),
@@ -6544,6 +6585,12 @@ class User(_types.Object[_protocols.User], fields = _User_fields):
     )
     """
     |dsrc| **discriminator**
+    """
+    global_name: typing.Union[None, _types.String] = vessel.GetField(
+        select = lambda root: root['global_name']
+    )
+    """
+    |dsrc| **global_name**
     """
     avatar: typing.Union[None, _types.String] = vessel.GetField(
         select = lambda root: root['avatar']
@@ -6617,6 +6664,10 @@ class User(_types.Object[_protocols.User], fields = _User_fields):
     """
     |dsrc| **public_flags**
     """
+
+    def display(self):
+
+        return self.global_name or self.username
 
     def mention(self):
 

@@ -156,7 +156,7 @@ def interact(client   : _client.Client,
              callback : typing.Callable[[typing.Union[typing.Any, None]], typing.Awaitable[_model.protocols.InteractionResponse | None]], 
              component: _model.protocols.MessageButtonComponent | _model.protocols.MessageSelectMenuComponent | _model.protocols.MessageTextInputComponent,
              /,
-             timeout  : float = 3):
+             timeout  : float = 60):
     
     """
     Invoke a callback when the component has been interacted with.

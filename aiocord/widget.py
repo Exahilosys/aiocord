@@ -22,6 +22,8 @@ __all__ = ('Info', 'callback', 'interact', 'load', 'drop')
 
 
 _V = typing.TypeVar('_V')
+
+
 _P = typing.ParamSpec('_P')
 
 
@@ -316,7 +318,7 @@ def load(client : _client.Client,
     :param client:
         The client to load the widget for.
     :param name:
-        The name of the widget, used for identifying in :attr:`.Info.widgets` and :func:`.drop`\ing.
+        The name of the widget, used for identifying in :attr:`.Info.widgets` and :func:`.drop`\ ing.
     :param path:
         The location of the package. If not specified, the calling widget's parent directory is used.
     :param vendor:

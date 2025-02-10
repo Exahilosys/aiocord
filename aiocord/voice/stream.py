@@ -75,7 +75,7 @@ class Stream:
 
         while True:
             try:
-                more = await self._fill_next()
+                await self._fill_next()
             except _errors.StreamPrefixMissing:
                 break
             self._event_fill.set()

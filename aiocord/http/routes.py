@@ -72,10 +72,11 @@ __all__ = (
     # 'create_group_channel', 
     'get_self_connections', 'get_self_application_role_connection', 
     'update_self_application_role_connection', 'get_voice_regions', 
-    'create_webhook', 'get_channel_webhooks', 'get_guild_webhooks', 
-    'get_webhook', 'get_webhook_via_token', 'update_webhook', 
-    'update_webhook_via_token', 'delete_webhook', 'delete_webhook_via_token', 
-    'create_webhook_message', 'create_webhook_message_slack_compatible', 
+    'get_self_voice_state', 'get_user_voice_state', 'create_webhook', 
+    'get_channel_webhooks', 'get_guild_webhooks', 'get_webhook', 
+    'get_webhook_via_token', 'update_webhook', 'update_webhook_via_token', 
+    'delete_webhook', 'delete_webhook_via_token', 'create_webhook_message', 
+    'create_webhook_message_slack_compatible', 
     'create_webhook_message_github_compatible', 'get_webhook_message', 
     'update_webhook_message', 'delete_webhook_message', 'get_gateway', 
     'get_gateway_bot', 'get_self_application_information',  
@@ -717,6 +718,12 @@ get_guild_roles = Route('GET', '/guilds/{0}/roles')
 :ddoc:`Get Guild Roles </resources/guild#get-guild-roles>`
 """
 
+get_guild_role = Route('GET', '/guilds/{0}/roles/{1}')
+"""
+|dsrc|
+:ddoc:`Get Guild Roles </resources/guild#get-guild-role>`
+"""
+
 create_guild_role = Route('POST', '/guilds/{0}/roles')
 """
 |dsrc|
@@ -1069,6 +1076,18 @@ get_voice_regions = Route('GET', '/voice/regions')
 """
 |dsrc|
 :ddoc:`List Voice Regions </resources/voice#list-voice-regions>`
+"""
+
+get_self_voice_state = Route('GET', '/guilds/{0}/voie-states/@me')
+"""
+|dsrc|
+:ddoc:`Get Current User Voice State </resources/voice#get-current-user-voice-state>`
+"""
+
+get_voice_state = Route('GET', '/guilds/{0}/voie-states/{1}')
+"""
+|dsrc|
+:ddoc:`Get Current User Voice State </resources/voice#get-user-voice-state>`
 """
 
 create_webhook = Route('POST', '/channels/{0}/webhooks')

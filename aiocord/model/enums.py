@@ -166,6 +166,7 @@ class Permissions(enum.IntFlag, metaclass = EnumMeta):
     create_guild_expressions            = 1 << 43
     create_events                       = 1 << 44
     send_voice_messages                 = 1 << 46
+    use_external_apps                   = 1 << 50
 
 
 class ApplicationCommandOptionType(enum.IntEnum, metaclass = EnumMeta):
@@ -252,6 +253,7 @@ class MessageButtonComponentStyle(enum.IntEnum, metaclass = EnumMeta):
     success   = 3
     danger    = 4
     link      = 5
+    premium   = 6
 
 class MessageSelectMenuComponentDefaultValueType(enum.StrEnum, metaclass = EnumMeta):
 
@@ -316,7 +318,7 @@ class InteractionResponseType(enum.IntEnum, metaclass = EnumMeta):
     update_message                          = 7
     application_command_autocomplete_result = 8
     modal                                   = 9
-    premium_required                        = 10
+    launch_activity                         = 12
 
 
 class ApplicationIntegrationType(enum.IntEnum, metaclass = EnumMeta):
@@ -451,6 +453,7 @@ class AutoModerationTriggerType(enum.IntEnum, metaclass = EnumMeta):
     spam           = 3
     keyword_preset = 4
     mention_spam   = 5
+    member_profile = 6
 
 
 class AutoModerationRuleKeywordPresetType(enum.IntEnum, metaclass = EnumMeta):
@@ -482,9 +485,10 @@ class AutoModerationActionType(enum.IntEnum, metaclass = EnumMeta):
     :ddoc:`Action Types </resources/auto-moderation#auto-moderation-action-object-action-types>`
     """
 
-    block_message      = 1
-    send_alert_message = 2
-    timeout            = 3
+    block_message            = 1
+    send_alert_message       = 2
+    timeout                  = 3
+    block_member_interaction = 4
 
 
 class ChannelVideoQualityMode(enum.IntEnum, metaclass = EnumMeta):

@@ -34,7 +34,7 @@ class HTTPMeddle(typing.Generic[_V]):
     
     Useful for attaching request/request-specific headers.
 
-    ``await``\ing the instance will perform the request.
+    ``await``ing the instance will perform the request.
 
     .. code-block:: python
 
@@ -145,7 +145,7 @@ class Client:
 
     __slots__ = (
         '_token', '_session', '_http', '_loads', '_dumps',  '_callbacks', 
-        '_shards', '_cache', '_guild_members_chunk_indexes', '_sentinels',
+        '_shards', '_cache', '_sentinels',
         '_voices', '__weakref__'
     )
 
@@ -155,36 +155,45 @@ class Client:
                  dumps = json.dumps):
         
         self._token = token
-        
-        session = aiohttp.ClientSession(
-            json_serialize = dumps
-        )
 
-        self._session = session
-
-        http = _http.client.Client(
-            session, 
-            loads = loads, 
-            dumps = dumps
-        )
-
-        self._http = http
+        self._session = None
+        self._http = None
         
         self._loads = loads
         self._dumps = dumps
-
-        http.authenticate(token)
 
         self._callbacks = []
 
         self._shards = {}
         self._cache = GatewayCache({})
 
-        self._guild_members_chunk_indexes = {}
-
         self._sentinels = collections.defaultdict(list)
 
         self._voices = {}
+
+    def __await__(self):
+
+        async def _():
+
+            session = aiohttp.ClientSession(
+                json_serialize = self._dumps
+            )
+
+            self._session = session
+
+            http = _http.client.Client(
+                session, 
+                loads = self._loads, 
+                dumps = self._dumps
+            )
+
+            self._http = http
+
+            http.authenticate(self._token)
+
+            return self
+
+        return _().__await__()
 
     @property
     def session(self) -> aiohttp.ClientSession:
@@ -3261,6 +3270,27 @@ class Client:
             return list(map(_model.objects.Role, data))
 
         return self._request(_http.routes.get_guild_roles, _resolve, path)
+    
+    class ___get_guild_role_hint(typing.TypedDict):
+
+        pass
+
+    def get_guild_role(self,
+                        guild_id: _model.types.Snowflake,
+                        role_id: _model.types.Snowflake,
+                        /, 
+                        **fields: typing.Unpack[___get_guild_role_hint]) -> HTTPMeddle[list[_model.objects.Role]]:
+
+        """
+        Use :data:`.http.routes.get_guild_role`.
+        """
+
+        path = [guild_id, role_id]
+
+        def _resolve(data):
+            return _model.objects.Role(data)
+
+        return self._request(_http.routes.get_guild_role, _resolve, path)
 
     class ___create_guild_role_hint(typing.TypedDict):
 
@@ -4818,6 +4848,45 @@ class Client:
             return list(map(_model.objects.VoiceRegion, data))
 
         return self._request(_http.routes.get_voice_regions, _resolve, path)
+    
+    class ___get_self_voice_state_hint(typing.TypedDict):
+
+        pass
+
+    def get_self_voice_state(self, 
+                          /, 
+                          **fields: typing.Unpack[___get_self_voice_state_hint]) -> HTTPMeddle[list[_model.objects.VoiceRegion]]:
+
+        """
+        Use :data:`.http.routes.get_self_voice_state`.
+        """
+
+        path = []
+
+        def _resolve(data):
+            return _model.objects.VoiceState(data)
+
+        return self._request(_http.routes.get_self_voice_state, _resolve, path)
+    
+    class ___get_user_voice_state_hint(typing.TypedDict):
+
+        pass
+
+    def get_user_voice_state(self, 
+                          /, 
+                          user_id: _model.objects.User,
+                          **fields: typing.Unpack[___get_user_voice_state_hint]) -> HTTPMeddle[list[_model.objects.VoiceRegion]]:
+
+        """
+        Use :data:`.http.routes.get_user_voice_state`.
+        """
+
+        path = [user_id]
+
+        def _resolve(data):
+            return _model.objects.VoiceState(data)
+
+        return self._request(_http.routes.get_user_voice_state, _resolve, path)
 
     class ___create_webhook_hint(typing.TypedDict):
 
@@ -6395,13 +6464,6 @@ class Client:
         data_guild['id'] = data['guild_id']
 
         core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
-
-        try:
-            core_indexes = self._guild_members_chunk_indexes[core_guild_id]
-        except KeyError:
-            core_indexes = self._guild_members_chunk_indexes[core_guild_id] = set(range(core_count))
-
-        core_indexes.discard(core_index)
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
@@ -6426,16 +6488,16 @@ class Client:
             guild           = core_guild,
             guild_members   = copy_guild_members,
             guild_presences = copy_guild_presences,
-            chunk_index     = core_index,
-            chunk_indexes   = core_indexes
+            chunk_count     = core_count,
+            chunk_index     = core_index
         )
 
         core_event = _events.ReceiveGuildMembers(
             guild           = core_guild,
             guild_members   = core_guild_members,
             guild_presences = core_guild_presences,
-            chunk_index     = core_index,
-            chunk_indexes   = core_indexes
+            chunk_count     = core_count,
+            chunk_index     = core_index
         )
 
         self._dispatch(core_event, copy_event)

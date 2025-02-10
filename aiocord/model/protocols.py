@@ -22,19 +22,19 @@ __all__ = (
     'OptionalAuditLogEntryInfo', 'AuditLogChange', 'AutoModerationRule', 
     'AutoModerationTriggerMetadata', 'AutoModerationAction', 
     'AutoModerationActionMetadata', 'Channel', 'Message', 'MessageActivity', 
-    'MessageInteractionMetadata', 'MessageReference', 'Reaction', 
-    'FollowedChannel', 'Overwrite', 'ThreadMetadata', 'ThreadMember', 
-    'DefaultReaction', 'ForumTag', 'Embed', 'EmbedThumbnail', 'EmbedVideo', 
-    'EmbedImage', 'EmbedProvider', 'EmbedAuthor', 'EmbedFooter', 'EmbedField', 
-    'Attachment', 'AllowedMentions', 'RoleSubscriptionData', 'Emoji', 'Guild', 
-    'GuildWidgetSettings', 'GuildWidget', 'GuildMember', 'Integration', 
-    'IntegrationAccount', 'IntegrationApplication', 'Ban', 'WelcomeScreen', 
-    'WelcomeScreenChannel', 'GuildOnboarding', 'GuildOnboardingPrompt', 
-    'GuildOnboardingPromptOption', 'GuildScheduledEvent', 
-    'GuildScheduledEventEntityMetadata', 'GuildScheduledEventUser', 
-    'GuildTemplate', 'Invite', 'InviteStageInstance', 'StageInstance', 
-    'Sticker', 'StickerPack', 'User', 'Connection', 
-    'ApplicationRoleConnection', 'VoiceState', 'VoiceRegion', 
+    'MessageInteractionMetadata', 'MessageReference', 'MessageSnapshot', 
+    'Reaction',  'FollowedChannel', 'Overwrite', 'ThreadMetadata', 
+    'ThreadMember', 'DefaultReaction', 'ForumTag', 'Embed', 'EmbedThumbnail', 
+    'EmbedVideo', 'EmbedImage', 'EmbedProvider', 'EmbedAuthor', 'EmbedFooter', 
+    'EmbedField', 'Attachment', 'AllowedMentions', 'RoleSubscriptionData', 
+    'Emoji', 'Guild', 'GuildWidgetSettings', 'GuildWidget', 'GuildMember', 
+    'Integration', 'IntegrationAccount', 'IntegrationApplication', 'Ban', 
+    'WelcomeScreen', 'WelcomeScreenChannel', 'GuildOnboarding', 
+    'GuildOnboardingPrompt', 'GuildOnboardingPromptOption', 
+    'GuildScheduledEvent', 'GuildScheduledEventEntityMetadata', 
+    'GuildScheduledEventUser', 'GuildTemplate', 'Invite', 
+    'InviteStageInstance', 'StageInstance', 'Sticker', 'StickerPack', 'User', 
+    'Connection', 'ApplicationRoleConnection', 'VoiceState', 'VoiceRegion', 
     'Webhook', 'Presence', 'ClientStatus', 'Activity', 'ActivityTimestamps', 
     'ActivityParty', 'ActivityAssets', 'ActivitySecrets', 'ActivityButton', 
     'Role', 'RoleTags', 'Team', 'TeamMember', 'SKU', 'Entitlement'
@@ -279,6 +279,7 @@ class Application(typing.TypedDict):
     primary_sku_id                   : _types.Snowflake
     slug                             : _types.String
     cover_image                      : _types.String
+    approximate_user_install_count   : _types.Integer
     flags                            : _types.Integer
     tags                             : list[_types.String]
     install_params                   : 'ApplicationInstallParams'
@@ -454,6 +455,7 @@ class Message(typing.TypedDict):
     application           : 'Application'
     application_id        : _types.Snowflake
     message_reference     : 'MessageReference'
+    message_snapshots     : list['MessageSnapshot']
     flags                 : _enums.MessageFlags
     referenced_message    : typing.Optional['Message']
     interaction           : 'MessageInteraction'
@@ -475,7 +477,7 @@ class MessageInteractionMetadata(typing.TypedDict):
 
     id                             : _types.Snowflake
     type                           : _enums.InteractionType
-    user_id                        : _types.Snowflake
+    user                           : 'User'
     authorizing_integration_owners : dict[_enums.ApplicationIntegrationType, typing.Any]
     original_response_message_id   : _types.Snowflake
     interacted_message_id          : _types.Snowflake
@@ -488,6 +490,11 @@ class MessageReference(typing.TypedDict):
     channel_id        : _types.Snowflake
     guild_id          : _types.Snowflake
     fail_if_not_exists: _types.Boolean
+
+
+class MessageSnapshot(typing.TypedDict):
+
+    message: 'Message'
 
 
 class Reaction(typing.TypedDict):
@@ -736,6 +743,7 @@ class GuildMember(typing.TypedDict):
     user                        : 'User'
     nick                        : typing.Optional[_types.String]
     avatar                      : typing.Optional[_types.String]
+    banner                      : typing.Optional[_types.String]
     roles                       : list[_types.Snowflake]
     joined_at                   : _types.ISO8601Timestamp
     premium_since               : typing.Optional[_types.ISO8601Timestamp]
@@ -950,6 +958,7 @@ class User(typing.TypedDict):
     id           : _types.Snowflake
     username     : _types.String
     discriminator: _types.String
+    global_name  : _types.String
     avatar       : typing.Optional[_types.String]
     bot          : _types.Boolean
     system       : _types.Boolean

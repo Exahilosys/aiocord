@@ -325,6 +325,8 @@ class Client:
 
     def _encrypt_xsalsa20_poly1305(self, header, data):
 
+        # TODO: Deprecate
+
         nonce = bytearray(24)
 
         nonce[:12] = header

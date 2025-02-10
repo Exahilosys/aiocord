@@ -57,7 +57,7 @@ _parser.add_argument(
 )
 
 
-def _get_client(info):
+def _get_client_token(info):
 
     if (token := info.token) is None:
         try:
@@ -68,9 +68,7 @@ def _get_client(info):
 
     token = 'Bot ' + token
 
-    client = _client.Client(token = token)
-
-    return client
+    return token
 
 
 _manage_parsers = _parser.add_subparsers(
@@ -104,7 +102,7 @@ _manage_start_parser.add_argument(
     '--intents',
     help = 'the intents to use (comma-delimited)',
     type = lambda data: functools.reduce(operator.xor, map(_enums.Intents.__getitem__, data.split(','))),
-    default = 0,
+    default = _enums.Intents.default(),
     required = False
 )
 
@@ -136,9 +134,11 @@ _main_start_enter_default_Events = {
     _events.UpdateVoiceState
 }
 
-async def _main_start_enter(client, vendor, path, intents, shard_ids, shard_count):
+async def _main_start_enter(token, vendor, path, intents, shard_ids, shard_count):
 
     name = object()
+
+    client = await _client.Client(token = token)
 
     await _widget.load(client, name, path, vendor = vendor)
 
@@ -153,7 +153,7 @@ async def _main_start_enter(client, vendor, path, intents, shard_ids, shard_coun
 
     await client.ready()
 
-    return name
+    return client, name
 
 async def _main_start_leave(client, name):
 
@@ -163,12 +163,13 @@ async def _main_start_leave(client, name):
 
 def _main_start(info):
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
 
-    client = _get_client(info)
+    token = _get_client_token(info)
 
-    coro = _main_start_enter(client, info.vendor, info.path, info.intents, info.shard_ids, info.shard_count)
-    name = loop.run_until_complete(coro)
+    coro = _main_start_enter(token, info.vendor, info.path, info.intents, info.shard_ids, info.shard_count)
+
+    client, name = loop.run_until_complete(coro)
 
     try:
         loop.run_forever()
@@ -189,7 +190,9 @@ _manage_update_parser.add_argument(
     help = 'the command file\'s extension-less location'
 )
 
-async def _main_update_perform(client: _client.Client, commands):
+async def _main_update_perform(token, commands):
+
+    client = await _client.Client(token = token)
 
     application = await client.get_self_application_information()
     
@@ -199,7 +202,7 @@ async def _main_update_perform(client: _client.Client, commands):
 
 def _main_update(info):
 
-    client = _get_client(info)
+    token = _get_client_token(info)
 
     loop = asyncio.get_event_loop()
 
@@ -217,7 +220,8 @@ def _main_update(info):
         with open(data_path, 'w') as file:
             json.dump(commands, file, indent = 4)
 
-    coro = _main_update_perform(client, commands)
+    coro = _main_update_perform(token, commands)
+
     loop.run_until_complete(coro)
 
 
