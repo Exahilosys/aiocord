@@ -3503,7 +3503,7 @@ _ThreadMember_fields = {
 
 def _ThreadMember_keyify(path, data):
 
-    data_id = data['id']
+    data_id = data['user_id']
     core_id = _types.Snowflake(data_id)
 
     return core_id
@@ -7103,7 +7103,7 @@ _VoiceState_fields = {
 
 def _VoiceState_keyify(path, data):
 
-    data_id = data['id']
+    data_id = data['user_id']
     core_id = _types.Snowflake(data_id)
 
     return core_id
