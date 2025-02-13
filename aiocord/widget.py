@@ -127,6 +127,23 @@ def _find_caller_widget_asset():
     return module, asset
 
 
+def _get_interaction_path(interaction):
+
+    path = [interaction.data]
+
+    while True:
+        interaction = path[- 1]
+        try:
+            option = interaction.options[0]
+        except LookupError:
+            break
+        if not option.type in {_model.enums.ApplicationCommandOptionType.sub_command, _model.enums.ApplicationCommandOptionType.sub_command_group}:
+            break
+        path.append(option)
+
+    return path
+
+
 async def _load_internal_widget(client, name, module):
 
     try:
@@ -166,22 +183,19 @@ async def _load_internal_widget(client, name, module):
 
     _latent_callback_assets.clear()
 
-    def get_command(path, commands = commands):
-        name, *path = path
-        for command in commands:
-            if not command.name == name:
-                continue
-            break
-        if not path:
-            return command
-        return get_command(path, commands = command.options)
-
-    def load_interact_callback(path, function):
-        command = get_command(path)
+    def load_interact_callback(path, function, commands = commands):
+        path = list(path)
+        command = next(command for command in commands if command.name == path[0])
         async def callback(info, core_event, *args, **kwargs):
             if not core_event.interaction.type == _model.enums.InteractionType.application_command:
                 return
             if not core_event.interaction.data.id == command.id:
+                return
+            option_path = _get_interaction_path(core_event.interaction)
+            option_name_path = [option.name for option in option_path]
+            while option_name_path and option_name_path != path:
+                del option_name_path[- 1]
+            if not option_name_path:
                 return
             response = await function(info, core_event, *args, **kwargs)
             if not response is None:
@@ -318,7 +332,7 @@ def load(client : _client.Client,
     :param client:
         The client to load the widget for.
     :param name:
-        The name of the widget, used for identifying in :attr:`.Info.widgets` and :func:`.drop`\ ing.
+        The name of the widget, used for identifying in :attr:`.Info.widgets` and :func:`.drop`ing.
     :param path:
         The location of the package. If not specified, the calling widget's parent directory is used.
     :param vendor:

@@ -45,7 +45,7 @@ class Client:
 
     __slots__ = (
         '_callback', '_session', '_user_id', '_guild_id', '_session_id', 
-        '_token', '_uri', '_loads', '_dumps', '_websocket', '_vital',
+        '_token', '_uri', '_loads', '_dumps', '_websocket', '_task', '_vital',
         '_event_identify', '_event_complete', '_ssrc', '_address', '_socket',
         '_encrypt', '_sequence', '_timestamp', '_secret', '_codec', '_player'
     )
@@ -76,6 +76,8 @@ class Client:
         self._dumps = dumps
 
         self._websocket = None
+
+        self._task = None
 
         self._vital = _vital.Vital(self._vital_beat, self._vital_save)
 
@@ -447,6 +449,12 @@ class Client:
                 continue
             await handle(message.data)
 
+    async def _process(self):
+
+        while not self._websocket.closed:
+            await self._listen()
+            await self._egress()
+
     async def _disconnect(self):
 
         await self._websocket.close(code = 1000)
@@ -467,7 +475,7 @@ class Client:
 
         self._event_identify.set()
 
-        await self._listen()
+        self._task = asyncio.create_task(self._process())
 
     def start(self) -> typing.Awaitable[None]:
 
@@ -486,6 +494,8 @@ class Client:
         self._vital.stop()
 
         await self._websocket.close()
+
+        await self._task
 
     def stop(self) -> typing.Awaitable[None]:
 

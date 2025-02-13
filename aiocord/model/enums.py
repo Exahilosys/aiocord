@@ -106,18 +106,26 @@ class Locale(enum.StrEnum, metaclass = EnumMeta):
     korean        = 'ko'
 
 
-class PermissionsMeta(enum.IntFlag, metaclass = EnumMeta.__class__):
+class PermissionsMeta(enum.IntFlag.__class__):
 
     def __call__(self, data, *args, **kwargs):
         data = int(data)
         return super().__call__(data, *args, **kwargs)
 
 
-class Permissions(enum.IntFlag, metaclass = EnumMeta):
+class Permissions(enum.IntFlag, metaclass = PermissionsMeta):
 
     """
     |dsrc| 
     :ddoc:`Permission Flags </topics/permissions#permissions-bitwise-permission-flags>`
+
+    Object accessing using dot-notation returns `bool` indicating whether the permission is present.
+
+    .. code-block:: python
+        :caption: Checking whether the role has the "view_channel" permission.
+
+        if role.permissions.view_channel:
+            ...
     """
     
     create_instant_invite               = 1 << 0
@@ -168,6 +176,18 @@ class Permissions(enum.IntFlag, metaclass = EnumMeta):
     send_voice_messages                 = 1 << 46
     use_external_apps                   = 1 << 50
 
+    def __getattribute__(self, name):
+
+        cls = object.__getattribute__(self, '__class__')
+        
+        try:
+            flag = cls.__members__[name]
+        except KeyError:
+            pass
+        else:
+            return self & flag == flag
+
+        return object.__getattribute__(self, name)
 
 class ApplicationCommandOptionType(enum.IntEnum, metaclass = EnumMeta):
 

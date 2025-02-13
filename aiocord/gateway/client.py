@@ -61,7 +61,7 @@ class Client:
     _zlib_suffix = b'\x00\x00\xff\xff'
 
     __slots__ = (
-        '_session', '_token', '_intents', '_uri', '_info', '_websocket', 
+        '_session', '_token', '_intents', '_uri', '_info', '_websocket', '_task', 
         '_buffer', '_flator', '_vital', '_sequence', '_callback', '_encoding',
         '_present', '_session_id', '_resume_uri', '_event_identify', '_event_complete',
         '_loads', '_dumps'
@@ -90,6 +90,8 @@ class Client:
         self._info = _Info(info_id, info_count)
 
         self._websocket = None
+
+        self._task = None
 
         self._buffer = bytearray()
         self._flator = zlib.decompressobj()
@@ -346,6 +348,11 @@ class Client:
 
     _close_codes_resume = {4000, 4002, 4003, 4005, 4007, 4008, 4009}
 
+    _close_reasons = {
+        4013: 'invalid intent',
+        4014: 'disallowed intent'
+    }
+
     async def _egress(self):
 
         close_code = self._websocket.close_code
@@ -354,13 +361,15 @@ class Client:
             return
         
         for routine in (self._resume,):
-            close_codes_name =  f'_clode_codes_{routine.__name__}'
-            close_codes = getattr(self, close_codes_name)
+            proccess_name = routine.__name__.strip('_')
+            close_codes_name = f'_close_codes_{proccess_name}'
+            close_codes = getattr(self.__class__, close_codes_name)
             if not close_code in close_codes:
                 continue
             break
         else:
-            raise _errors.Interrupted()
+            close_reason = self._close_reasons.get(close_code, 'unknown reason')
+            raise _errors.Interrupted(close_reason)
         
         await routine()
 
@@ -371,7 +380,8 @@ class Client:
                 handle = getattr(self, f'_listen_{message.type.name}')
             except AttributeError:
                 continue
-            await handle(message.data)
+            else:
+                await handle(message.data)
 
     async def _process(self):
 
@@ -407,7 +417,7 @@ class Client:
 
         await self._connect(self._uri)
 
-        await self._listen()
+        self._task = asyncio.create_task(self._process())
 
     def start(self) -> typing.Awaitable[None]:
 
@@ -422,6 +432,8 @@ class Client:
         await self._vital.stop()
 
         await self._disconnect()
+
+        await self._task
 
     def stop(self) -> typing.Awaitable[None]:
 

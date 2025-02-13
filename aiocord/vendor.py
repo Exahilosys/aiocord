@@ -102,7 +102,7 @@ _manage_start_parser.add_argument(
     '--intents',
     help = 'the intents to use (comma-delimited)',
     type = lambda data: functools.reduce(operator.xor, map(_enums.Intents.__getitem__, data.split(','))),
-    default = _enums.Intents.default(),
+    default = 0,
     required = False
 )
 

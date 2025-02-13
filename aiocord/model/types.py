@@ -85,7 +85,7 @@ class ISO8601Timestamp(String):
         return datetime.datetime.fromisoformat(self)
     
 
-class Snowflake(String):
+class Snowflake(Integer):
 
     """
     |dsrc|
@@ -101,4 +101,4 @@ class Snowflake(String):
         The internal timestamp.
         """
 
-        return Timestamp(((int(self) >> 22) + epoch) / 1000)
+        return Timestamp(((self >> 22) + epoch) / 1000)

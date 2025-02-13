@@ -43,18 +43,20 @@ class Client:
     }
 
     _rate_marks = {}
-    _rate_infos = collections.defaultdict(dict)
+    _rate_locks = collections.defaultdict(dict)
 
     _rate_event = asyncio.Event()
     _rate_event.set()
 
-    __slots__ = ('_session', '_token', '_loads', '_dumps', '_ought_handle_rate')
+    __slots__ = ('_session', '_token', '_loads', '_dumps', '_ought_handle_rate',
+                 '_raise_beyond_rate')
 
     def __init__(self, 
                  session    : aiohttp.ClientSession,
                  loads      : typing.Callable[[str], typing.Any] = json.loads,
                  dumps      : typing.Callable[[typing.Any], str] = json.dumps,
-                 ignore_rate: bool                               = False):
+                 ignore_rate: bool                               = False,
+                 raise_after: int                                = 60):
 
         self._session = session
 
@@ -64,6 +66,7 @@ class Client:
         self._dumps = dumps
 
         self._ought_handle_rate = not ignore_rate
+        self._raise_beyond_rate = raise_after
 
     def _authenticate(self, token):
 
@@ -152,11 +155,11 @@ class Client:
 
         try:
             mark = self._rate_marks[identity]
-            info = self._rate_infos[self._token][mark]
+            lock = self._rate_locks[self._token][mark]
         except KeyError:
-            return
+            lock = asyncio.Lock()
         
-        await info.lock.acquire()
+        return lock
 
     async def _handle_rate_leave_global(self, headers):
 
@@ -176,40 +179,20 @@ class Client:
 
         loop.call_later(delay, reset)
 
-    async def _handle_rate_leave_local(self, identity, headers):
+    def _handle_rate_leave_local(self, identity, headers):
 
         mark = headers['X-RateLimit-Bucket']
 
         self._rate_marks[identity] = mark
 
-        infos = self._rate_infos[self._token]
+        locks = self._rate_locks[self._token]
 
-        limit = int(headers['X-RateLimit-Limit'])
-
-        try:
-            info = infos[mark]
-        except KeyError:
-            lock = asyncio.Semaphore(value = limit)
-            info = infos[mark] = types.SimpleNamespace(lock = lock, timer = None)
-
-        flush = int(headers['X-RateLimit-Remaining'])
-
-        while info.lock._value > flush:
-            await info.lock.acquire()
-
-        if flush or not info.timer is None:
+        if mark in locks:
             return
         
-        loop = asyncio.get_event_loop()
+        limit = int(headers['X-RateLimit-Limit'])
 
-        delay = float(headers['X-RateLimit-Reset-After'])
-
-        def reset():
-            for _ in range(limit):
-                info.lock.release()
-            info.timer = None
-
-        info.timer = loop.call_later(delay, reset)
+        locks[mark] = asyncio.Semaphore(value = limit)
 
     def _handle_rate_leave(self, identity, headers):
 
@@ -223,20 +206,23 @@ class Client:
     async def _request_safe(self, identity, verb, path, *args, **kwargs):
 
         while not self._session.closed:
-            await self._handle_rate_enter(identity)
-            try:
-                response, data = await self._execute(verb, path, *args, **kwargs)
-            except _errors.RateLimited as error:
-                response = error.response
-                delay = error.data['retry_after']
-            except:
-                delay = None; raise
-            else:
-                delay = 0   ; break
-            finally:
-                if not delay is None:
-                    await self._handle_rate_leave(identity, response.headers)
-                    await asyncio.sleep(delay)
+            lock = await self._handle_rate_enter(identity)
+            async with lock:
+                try:
+                    response, data = await self._execute(verb, path, *args, **kwargs)
+                except _errors.RateLimited as error:
+                    response = error.response
+                    delay = error.data['retry_after']
+                except:
+                    delay = None; raise
+                else:
+                    delay = 0   ; break
+                finally:
+                    self._handle_rate_leave(identity, response.headers)
+                    if not delay is None:
+                        if delay > self._raise_beyond_rate:
+                            raise 
+                        await asyncio.sleep(delay)
         else:
             raise _errors.Interrupted('session closed while executing a request')
 
@@ -277,7 +263,7 @@ class Client:
         :param identity:
             Used for handling rate limits.
         """
-
+        
         data = await self._request(identity, verb, path, query, json, data, files, headers)
 
         return data

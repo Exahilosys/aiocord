@@ -68,8 +68,14 @@ _ApplicationCommand_fields = {
     )
 }
 
+def _ApplicationCommand_keyify(path, data):
 
-class ApplicationCommand(_types.Object[_protocols.ApplicationCommand], fields = _ApplicationCommand_fields):
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class ApplicationCommand(_types.Object[_protocols.ApplicationCommand], fields = _ApplicationCommand_fields, keyify = _ApplicationCommand_keyify):
 
     """
     |dsrc| :ddoc:`Application Command Structure </interactions/application-commands#application-command-object-application-command-structure>`
@@ -423,7 +429,15 @@ _GuildApplicationCommandPermissions_fields = {
 }
 
 
-class GuildApplicationCommandPermissions(_types.Object[_protocols.GuildApplicationCommandPermissions], fields = _GuildApplicationCommandPermissions_fields):
+def GuildApplicationCommandPermissions_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildApplicationCommandPermissions(_types.Object[_protocols.GuildApplicationCommandPermissions], fields = _GuildApplicationCommandPermissions_fields, keyify = GuildApplicationCommandPermissions_keyify):
 
     """
     DocumenGuild Application Command Permissions Structure </interactions/application-commands#application-command-permissions-object-guild-application-command-permissions-structure>`
@@ -443,7 +457,7 @@ class GuildApplicationCommandPermissions(_types.Object[_protocols.GuildApplicati
     )
 
 
-_ApplicationCommandPermission_fields = {
+_ApplicationCommandPermissions_fields = {
     'id': vessel.SetField(
         create = lambda path, data: _types.Snowflake(data)
     ),
@@ -456,7 +470,14 @@ _ApplicationCommandPermission_fields = {
 }
 
 
-class ApplicationCommandPermission(_types.Object[_protocols.ApplicationCommandPermission], fields = _ApplicationCommandPermission_fields):
+def ApplicationCommandPermissions_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class ApplicationCommandPermissions(_types.Object[_protocols.ApplicationCommandPermissions], fields = _ApplicationCommandPermissions_fields, keyify = ApplicationCommandPermissions_keyify):
 
     """
     DocumenApplication Command Permissions Structure </interactions/application-commands#application-command-permissions-object-application-command-permissions-structure>`
@@ -740,6 +761,7 @@ class MessageSelectMenuComponentOption(_types.Object[_protocols.MessageSelectMen
     |dsrc| **default**
     """
 
+
 _MessageSelectMenuComponentDefaultValue_fields = {
     'id': vessel.SetField(
         create = lambda path, data: _types.Snowflake(data)
@@ -748,6 +770,7 @@ _MessageSelectMenuComponentDefaultValue_fields = {
         create = lambda path, data: _enums.MessageSelectMenuComponentDefaultValueType(data)
     )
 }
+
 
 class MessageSelectMenuComponentDefaultValue(_types.Object[_protocols.MessageSelectMenuComponentDefaultValue], fields = _MessageSelectMenuComponentDefaultValue_fields):
 
@@ -767,6 +790,7 @@ class MessageSelectMenuComponentDefaultValue(_types.Object[_protocols.MessageSel
     """
     |dsrc| **type**
     """
+
 
 _MessageTextInputComponent_fields = {
     'type': vessel.SetField(
@@ -942,7 +966,15 @@ _Interaction_fields = {
 }
 
 
-class Interaction(_types.Object[_protocols.Interaction], fields = _Interaction_fields):
+def Interaction_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Interaction(_types.Object[_protocols.Interaction], fields = _Interaction_fields, keyify = Interaction_keyify):
 
     """
     |dsrc| :ddoc:`Interaction Structure </interactions/receiving-and-responding#interaction-object-interaction-structure>`
@@ -1292,6 +1324,7 @@ def _ResolvedInteractionData_fields_fix_members(path, members):
     users = path[-1]['users']
 
     for user_id, member in members.items():
+        user_id = _types.Snowflake(user_id)
         member['user'] = vessel.strip(users[user_id])
 
     return members.values()
@@ -1377,7 +1410,14 @@ _MessageInteraction_fields = {
 }
 
 
-class MessageInteraction(_types.Object[_protocols.MessageInteraction], fields = _MessageInteraction_fields):
+def MessageInteraction_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class MessageInteraction(_types.Object[_protocols.MessageInteraction], fields = _MessageInteraction_fields, keyify = MessageInteraction_keyify):
 
     """
     |dsrc| :ddoc:`Message Interaction Structure </interactions/receiving-and-responding#message-interaction-object-message-interaction-structure>`
@@ -1535,7 +1575,7 @@ _Application_fields = {
 }
 
 
-def _Application_identify(path, data):
+def _Application_keyify(path, data):
 
     data_id = data['id']
     core_id = _types.Snowflake(data_id)
@@ -1543,7 +1583,7 @@ def _Application_identify(path, data):
     return core_id
 
 
-class Application(_types.Object[_protocols.Application], fields = _Application_fields):
+class Application(_types.Object[_protocols.Application], fields = _Application_fields, keyify = _Application_keyify):
 
     """
     |dsrc| :ddoc:`Application Structure </resources/application#application-object-application-structure>`
@@ -2195,7 +2235,7 @@ _AutoModerationRule_fields = {
 }
 
 
-def _AutoModerationRule_identify(path, data):
+def _AutoModerationRule_keyify(path, data):
 
     data_id = data['id']
     core_id = _types.Snowflake(data_id)
@@ -2203,7 +2243,7 @@ def _AutoModerationRule_identify(path, data):
     return core_id
 
 
-class AutoModerationRule(_types.Object[_protocols.AutoModerationRule], fields = _AutoModerationRule_fields):
+class AutoModerationRule(_types.Object[_protocols.AutoModerationRule], fields = _AutoModerationRule_fields, keyify = _AutoModerationRule_keyify):
 
     """
     |dsrc| :ddoc:`Trigger Metadata </resources/auto-moderation#auto-moderation-rule-object-trigger-metadata>`
@@ -2525,7 +2565,7 @@ _Channel_fields = {
 }
 
 
-def _Channel_identify(path, data):
+def _Channel_keyify(path, data):
 
     data_id = data['id']
     core_id = _types.Snowflake(data_id)
@@ -2533,7 +2573,7 @@ def _Channel_identify(path, data):
     return core_id
 
 
-class Channel(_types.Object[_protocols.Channel], fields = _Channel_fields):
+class Channel(_types.Object[_protocols.Channel], fields = _Channel_fields, keyify = _Channel_keyify):
 
     """
     |dsrc| :ddoc:`Channel Structure </resources/channel#channel-object-channel-structure>`
@@ -2871,7 +2911,14 @@ _Message_fields = {
 }
 
 
-class Message(_types.Object[_protocols.Message], fields = _Message_fields):
+def _Message_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class Message(_types.Object[_protocols.Message], fields = _Message_fields, keyify = _Message_keyify):
 
     """
     |dsrc| :ddoc:`Message Structure </resources/channel#message-object-message-structure>`
@@ -3311,7 +3358,6 @@ class FollowedChannel(_types.Object[_protocols.FollowedChannel], fields = _Follo
     """
 
 
-
 _Overwrite_fields = {
     'id': vessel.SetField(
         create = lambda path, data: _types.Snowflake(data),
@@ -3329,7 +3375,15 @@ _Overwrite_fields = {
 }
 
 
-class Overwrite(_types.Object[_protocols.Overwrite], fields = _Overwrite_fields):
+def _Overwrite_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Overwrite(_types.Object[_protocols.Overwrite], fields = _Overwrite_fields, keyify = _Overwrite_keyify):
 
     """
     |dsrc| :ddoc:`Overwrite Structure </resources/channel#overwrite-object-overwrite-structure>`
@@ -3447,7 +3501,15 @@ _ThreadMember_fields = {
 }
 
 
-class ThreadMember(_types.Object[_protocols.ThreadMember], fields = _ThreadMember_fields):
+def _ThreadMember_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class ThreadMember(_types.Object[_protocols.ThreadMember], fields = _ThreadMember_fields, keyify = _ThreadMember_keyify):
 
     """
     |dsrc| :ddoc:`Thread Member Structure </resources/channel#thread-member-object-thread-member-structure>`
@@ -3535,7 +3597,15 @@ _ForumTag_fields = {
 }
 
 
-class ForumTag(_types.Object[_protocols.ForumTag], fields = _ForumTag_fields):
+def _ForumTag_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class ForumTag(_types.Object[_protocols.ForumTag], fields = _ForumTag_fields, keyify = _ForumTag_keyify):
 
     """
     |dsrc| :ddoc:`Forum Tag Structure </resources/channel#forum-tag-object-forum-tag-structure>`
@@ -4043,7 +4113,15 @@ _Attachment_fields = {
 }
 
 
-class Attachment(_types.Object[_protocols.Attachment], fields = _Attachment_fields):
+def _Attachment_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Attachment(_types.Object[_protocols.Attachment], fields = _Attachment_fields, keyify = _Attachment_keyify):
 
     """
     |dsrc| :ddoc:`Resources </resources/channel#embed-object-embed-field-structure>`
@@ -4251,7 +4329,15 @@ _Emoji_fields = {
 }
 
 
-class Emoji(_types.Object[_protocols.Emoji], fields = _Emoji_fields):
+def _Emoji_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Emoji(_types.Object[_protocols.Emoji], fields = _Emoji_fields, keyify = _Emoji_keyify):
 
     """
     |dsrc| :ddoc:`Emoji Structure </resources/emoji#emoji-object-emoji-structure>`
@@ -4490,7 +4576,15 @@ _Guild_fields = {
 }
 
 
-class Guild(_types.Object[_protocols.Guild], fields = _Guild_fields):
+def _Guild_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Guild(_types.Object[_protocols.Guild], fields = _Guild_fields, keyify = _Guild_keyify):
 
     """
     |dsrc| :ddoc:`Guild Structure </resources/guild#guild-object-guild-structure>` | 
@@ -4902,7 +4996,15 @@ _GuildWidget_fields = {
 }
 
 
-class GuildWidget(_types.Object[_protocols.GuildWidget], fields = _GuildWidget_fields):
+def _GuildWidget_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildWidget(_types.Object[_protocols.GuildWidget], fields = _GuildWidget_fields, keyify = _GuildWidget_keyify):
 
     """
     |dsrc| :ddoc:`Guild Widget Structure </resources/guild#guild-widget-object-guild-widget-structure>`
@@ -5160,7 +5262,14 @@ _Integration_fields = {
 }
 
 
-class Integration(_types.Object[_protocols.Integration], fields = _Integration_fields):
+def _Integration_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class Integration(_types.Object[_protocols.Integration], fields = _Integration_fields, keyify = _Integration_keyify):
 
     """
     |dsrc| :ddoc:`Integration Structure </resources/guild#integration-object-integration-structure>`
@@ -5274,7 +5383,15 @@ _IntegrationAccount_fields = {
 }
 
 
-class IntegrationAccount(_types.Object[_protocols.IntegrationAccount], fields = _IntegrationAccount_fields):
+def _IntegrationAccount_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class IntegrationAccount(_types.Object[_protocols.IntegrationAccount], fields = _IntegrationAccount_fields, keyify = _IntegrationAccount_keyify):
 
     """
     |dsrc| :ddoc:`Integration Account Structure </resources/guild#integration-account-object-integration-account-structure>`
@@ -5314,7 +5431,15 @@ _IntegrationApplication_fields = {
 }
 
 
-class IntegrationApplication(_types.Object[_protocols.IntegrationApplication], fields = _IntegrationApplication_fields):
+def _IntegrationApplication_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class IntegrationApplication(_types.Object[_protocols.IntegrationApplication], fields = _IntegrationApplication_fields, keyify = _IntegrationApplication_keyify):
 
     """
     |dsrc| :ddoc:`Integration Application Structure </resources/guild#integration-application-object-integration-application-structure>`
@@ -5360,6 +5485,14 @@ _Ban_fields = {
         create = lambda path, data: User(data)
     )
 }
+
+
+def _Ban_keyify(path, data):
+
+    data_id = data['user']['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
 
 
 class Ban(_types.Object[_protocols.Ban], fields = _Ban_fields):
@@ -5534,7 +5667,15 @@ _GuildOnboardingPrompt_fields = {
 }
 
 
-class GuildOnboardingPrompt(_types.Object[_protocols.GuildOnboardingPrompt], fields = _GuildOnboardingPrompt_fields):
+def _GuildOnboardingPrompt_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildOnboardingPrompt(_types.Object[_protocols.GuildOnboardingPrompt], fields = _GuildOnboardingPrompt_fields, keyify = _GuildOnboardingPrompt_keyify):
 
     """
     |dsrc| :ddoc:`Onboarding Prompt Structure </resources/guild#guild-onboarding-object-onboarding-prompt-structure>`
@@ -5607,7 +5748,15 @@ _GuildOnboardingPromptOption_fields = {
 }
 
 
-class GuildOnboardingPromptOption(_types.Object[_protocols.GuildOnboardingPromptOption], fields = _GuildOnboardingPromptOption_fields):
+def _GuildOnboardingPromptOption_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildOnboardingPromptOption(_types.Object[_protocols.GuildOnboardingPromptOption], fields = _GuildOnboardingPromptOption_fields, keyify = _GuildOnboardingPromptOption_keyify):
 
     """
     |dsrc| :ddoc:`Prompt Option Structure </resources/guild#guild-onboarding-object-prompt-option-structure>`
@@ -5707,7 +5856,15 @@ _GuildScheduledEvent_fields = {
 }
 
 
-class GuildScheduledEvent(_types.Object[_protocols.GuildScheduledEvent], fields = _GuildScheduledEvent_fields):
+def _GuildScheduledEvent_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildScheduledEvent(_types.Object[_protocols.GuildScheduledEvent], fields = _GuildScheduledEvent_fields, keyify = _GuildScheduledEvent_keyify):
 
     """
     |dsrc| :ddoc:`Guild Scheduled Event Structure </resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-structure>`
@@ -5853,7 +6010,15 @@ _GuildScheduledEventUser_fields = {
 }
 
 
-class GuildScheduledEventUser(_types.Object[_protocols.GuildScheduledEventUser], fields = _GuildScheduledEventUser_fields):
+def _GuildScheduledEventUser_keyify(path, data):
+
+    data_id = data['user']['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class GuildScheduledEventUser(_types.Object[_protocols.GuildScheduledEventUser], fields = _GuildScheduledEventUser_fields, keyify = _GuildScheduledEventUser_keyify):
 
     """
     |dsrc| :ddoc:`Guild Scheduled Event User Structure </resources/guild-scheduled-event#guild-scheduled-event-user-object-guild-scheduled-event-user-structure>`
@@ -6240,7 +6405,14 @@ _StageInstance_fields = {
 }
 
 
-class StageInstance(_types.Object[_protocols.StageInstance], fields = _StageInstance_fields):
+def _StageInstance_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+class StageInstance(_types.Object[_protocols.StageInstance], fields = _StageInstance_fields, keyify = _StageInstance_keyify):
 
     """
     |dsrc| :ddoc:`Stage Instance Structure </resources/stage-instance#stage-instance-object-stage-instance-structure>`
@@ -6334,7 +6506,15 @@ _Sticker_fields = {
 }
 
 
-class Sticker(_types.Object[_protocols.Sticker], fields = _Sticker_fields):
+def _Sticker_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Sticker(_types.Object[_protocols.Sticker], fields = _Sticker_fields, keyify = _Sticker_keyify):
 
     """
     |dsrc| :ddoc:`Sticker Structure </resources/sticker#sticker-object-sticker-structure>`
@@ -6448,7 +6628,15 @@ _StickerPack_fields = {
 }
 
 
-class StickerPack(_types.Object[_protocols.StickerPack], fields = _StickerPack_fields):
+def _StickerPack_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class StickerPack(_types.Object[_protocols.StickerPack], fields = _StickerPack_fields, keyify = _StickerPack_keyify):
 
     """
     |dsrc| :ddoc:`Sticker Pack Structure </resources/sticker#sticker-pack-object-sticker-pack-structure>`
@@ -6562,7 +6750,15 @@ _User_fields = {
 }
 
 
-class User(_types.Object[_protocols.User], fields = _User_fields):
+def _User_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class User(_types.Object[_protocols.User], fields = _User_fields, keyify = _User_keyify, identify = _User_keyify):
 
     """
     |dsrc| :ddoc:`User Structure </resources/user#user-object-user-structure>`
@@ -6665,7 +6861,20 @@ class User(_types.Object[_protocols.User], fields = _User_fields):
     |dsrc| **public_flags**
     """
 
+    @property
+    def name(self):
+
+        """
+        Alias for **username**.
+        """
+
+        return self.username
+
     def display(self):
+
+        """
+        Get the display name.
+        """
 
         return self.global_name or self.username
 
@@ -6728,7 +6937,15 @@ _Connection_fields = {
 }
 
 
-class Connection(_types.Object[_protocols.Connection], fields = _Connection_fields):
+def _Connection_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Connection(_types.Object[_protocols.Connection], fields = _Connection_fields, keyify = _Connection_keyify):
 
     """
     |dsrc| :ddoc:`Connection Structure </resources/user#connection-object-connection-structure>`
@@ -6884,7 +7101,15 @@ _VoiceState_fields = {
 }
 
 
-class VoiceState(_types.Object[_protocols.VoiceState], fields = _VoiceState_fields):
+def _VoiceState_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class VoiceState(_types.Object[_protocols.VoiceState], fields = _VoiceState_fields, keyify = _VoiceState_keyify):
 
     """
     |dsrc| :ddoc:`Voice State Structure </resources/voice#voice-state-object-voice-state-structure>`
@@ -6989,7 +7214,15 @@ _VoiceRegion_fields = {
 }
 
 
-class VoiceRegion(_types.Object[_protocols.VoiceRegion], fields = _VoiceRegion_fields):
+def _VoiceState_keyify(path, data):
+
+    data_id = data['id']
+    core_id = data_id
+
+    return core_id
+
+
+class VoiceRegion(_types.Object[_protocols.VoiceRegion], fields = _VoiceRegion_fields, keyify = _VoiceState_keyify):
 
     """
     |dsrc| :ddoc:`Voice Region Structure </resources/voice#voice-region-object-voice-region-structure>`
@@ -7071,7 +7304,15 @@ _Webhook_fields = {
 }
 
 
-class Webhook(_types.Object[_protocols.Webhook], fields = _Webhook_fields):
+def _Webhook_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Webhook(_types.Object[_protocols.Webhook], fields = _Webhook_fields, keyify = _Webhook_keyify):
 
     """
     |dsrc| :ddoc:`Webhook Structure </resources/webhook#webhook-object-webhook-structure>`
@@ -7175,9 +7416,10 @@ _Presence_fields = {
 
 def _Presence_keyify(path, data):
 
-    user_id = data['user']['id']
+    data_id = data['user']['id']
+    core_id = _types.Snowflake(data_id)
 
-    return _types.Snowflake(user_id)
+    return core_id
 
 
 class Presence(_types.Object[_protocols.Presence], fields = _Presence_fields, keyify = _Presence_keyify):
@@ -7605,7 +7847,7 @@ _Role_fields = {
         create = lambda path, data: _types.Integer(data)
     ),
     'permissions': vessel.SetField(
-        create = lambda path, data: _types.String(data)
+        create = lambda path, data: _enums.Permissions(data)
     ),
     'managed': vessel.SetField(
         create = lambda path, data: _types.Boolean(data)
@@ -7619,7 +7861,15 @@ _Role_fields = {
 }
 
 
-class Role(_types.Object[_protocols.Role], fields = _Role_fields):
+def _Role_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Role(_types.Object[_protocols.Role], fields = _Role_fields, keyify = _Role_keyify):
 
     """
     |dsrc| :ddoc:`Role Structure </topics/permissions#role-object-role-structure>`
@@ -7667,7 +7917,7 @@ class Role(_types.Object[_protocols.Role], fields = _Role_fields):
     """
     |dsrc| **position**
     """
-    permissions: _types.String = vessel.GetField(
+    permissions: _enums.Permissions = vessel.GetField(
         select = lambda root: root['permissions']
     )
     """
@@ -7798,7 +8048,15 @@ _Team_fields = {
 }
 
 
-class Team(_types.Object[_protocols.Team], fields = _Team_fields):
+def _Team_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Team(_types.Object[_protocols.Team], fields = _Team_fields, keyify = _Team_keyify):
 
     """
     |dsrc| :ddoc:`Data Models Team Object </topics/teams#data-models-team-object>`
@@ -7914,7 +8172,15 @@ _SKU_fields = {
 }
 
 
-class SKU(_types.Object[_protocols.SKU], fields = _SKU_fields):
+def _SKU_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class SKU(_types.Object[_protocols.SKU], fields = _SKU_fields, keyify = _SKU_keyify):
 
     """
     |dsrc| :ddoc:`SKU Structure </monetization/skus#sku-object-sku-structure>`
@@ -7971,7 +8237,15 @@ _Entitlement_fields = {
 }
 
 
-class Entitlement(_types.Object[_protocols.Entitlement], fields = _Entitlement_fields):
+def _Entitlement_keyify(path, data):
+
+    data_id = data['id']
+    core_id = _types.Snowflake(data_id)
+
+    return core_id
+
+
+class Entitlement(_types.Object[_protocols.Entitlement], fields = _Entitlement_fields, keyify = _Entitlement_keyify):
 
     """
     |dsrc| :ddoc:`Entitlement Structure </monetization/entitlements#entitlement-object-entitlement-structure>`

@@ -113,7 +113,7 @@ class Route:
     @property
     def _identity(self):
 
-        return (self._verb, self._path_template)
+        return 
 
     def __call__(self, 
                  client: _client.Client, 
@@ -123,7 +123,9 @@ class Route:
 
         path = self._path_template.format(*path_sections)
 
-        return client.request(self._verb, path, **kwargs, identity = self._identity)
+        identity = (self._verb, path)
+
+        return client.request(self._verb, path, **kwargs, identity = identity)
     
     def __repr__(self):
 

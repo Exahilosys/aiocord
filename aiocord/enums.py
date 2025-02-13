@@ -30,33 +30,6 @@ class Intents(enum.IntFlag):
     auto_moderation_configuration    = 1 << 20
     auto_moderation_action_execution = 1 << 21
 
-    @classmethod
-    def default(cls):
-
-        """
-        Get all the non-privilaged intents.
-        """
-
-        return (
-              cls.guilds
-            | cls.guild_moderation
-            | cls.guild_emojis_and_stickers
-            | cls.guild_integrations
-            | cls.guild_webhooks
-            | cls.guild_invites
-            | cls.guild_voice_states
-            | cls.guild_messages
-            | cls.guild_message_reactions
-            | cls.guild_message_typing
-            | cls.direct_messages
-            | cls.direct_message_reactions
-            | cls.direct_message_typing
-            | cls.guild_scheduled_events
-            | cls.auto_moderation_configuration
-            | cls.auto_moderation_action_execution
-        )
-
-
 class GatewayEvent(enum.StrEnum):
 
     """

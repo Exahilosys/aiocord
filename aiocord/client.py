@@ -7,6 +7,7 @@ import copy
 import functools
 import io
 import collections
+import math
 
 from . import helpers as _helpers
 from . import http    as _http
@@ -86,7 +87,7 @@ class HTTPMeddle(typing.Generic[_V]):
 
         return core
 
-    def __await__(self):
+    def __await__(self) -> _V:
 
         return self._execute().__await__()
 
@@ -145,7 +146,7 @@ class Client:
 
     __slots__ = (
         '_token', '_session', '_http', '_loads', '_dumps',  '_callbacks', 
-        '_shards', '_cache', '_sentinels',
+        '_shards', '_cache', '_ready_guild_ids', '_sentinels',
         '_voices', '__weakref__'
     )
 
@@ -166,6 +167,7 @@ class Client:
 
         self._shards = {}
         self._cache = GatewayCache({})
+        self._ready_guild_ids = set()
 
         self._sentinels = collections.defaultdict(list)
 
@@ -744,7 +746,7 @@ class Client:
 
     class ___update_application_command_permissions_hint(typing.TypedDict):
 
-        permissions: typing.Required[list[_model.protocols.ApplicationCommandPermission]]
+        permissions: typing.Required[list[_model.protocols.ApplicationCommandPermissions]]
 
     def update_application_command_permissions(self,
                                                application_id: _model.types.Snowflake,
@@ -1442,9 +1444,31 @@ class Client:
 
         def _resolve(data):
             return list(map(_model.objects.Message, data))
+        
+        request = functools.partial(self._request, _http.routes.get_messages, _resolve, path, query = query)
 
-        return self._request(_http.routes.get_messages, _resolve, path, query = query)
+        keys = ('before', 'after', 'around')
 
+        try:
+            key = next(key for key in keys if not query.get(key) is None)
+        except StopIteration:
+            key = 'before'
+
+        quota = 100
+        limit = query.pop('limit', math.inf)
+
+        mono = key == 'around' 
+
+        if mono and not limit is math.inf and limit > quota:
+            raise ValueError(f'cannot fetch more than {100} with "around"')
+        
+        def fix(limit, messages):
+            if messages:
+                query[key] = messages[-1].id
+            query['limit'] = limit
+
+        return _helpers.iterate_route(request, fix, quota, limit, mono)    
+    
     class ___get_message_hint(typing.TypedDict):
 
         pass
@@ -5546,6 +5570,8 @@ class Client:
 
         vessel.update(self._cache, data)
 
+        self._ready_guild_ids.update(guild.id for guild in self._cache.guilds)
+
         core_event = _events.Ready()
 
         self._dispatch(core_event)
@@ -5561,7 +5587,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_application_command_permissions = data
@@ -5586,7 +5612,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_auto_moderation_rule = data
@@ -5611,7 +5637,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_auto_moderation_rule = data
@@ -5636,7 +5662,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
 
@@ -5662,7 +5688,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_auto_moderation_action = data['action']
@@ -5680,7 +5706,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_user_id]
-        except KeyError:
+        except LookupError:
             core_user = _model.objects.User(data_user)
         else:
             core_user = core_guild_member.user
@@ -5692,7 +5718,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_source_message = {}
@@ -5755,15 +5781,17 @@ class Client:
             core_guild_id = _model.missing
         else:
             core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
-
+        
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
-            core_channel = _model.objects.Channel(data_channel)
-        else:
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
+
+        if core_guild:
             core_channel = vessel.add(core_guild.channels, data_channel)
-        
+        else:
+            core_channel = _model.objects.Channel(data_channel)
+
         core_event = _events.CreateChannel(
             guild   = core_guild,
             channel = core_channel
@@ -5775,10 +5803,6 @@ class Client:
 
         # https://discord.com/developers/docs/topics/gateway-events#channel-update
 
-        data_channel = data
-
-        core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
-
         data_guild = {}
         try:
             data_guild['id'] = data['guild_id']
@@ -5789,12 +5813,16 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
+
+        data_channel = data
+
+        core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             copy_channel = None
             core_channel = _model.objects.Channel(data_channel)
         else:
@@ -5831,11 +5859,13 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
-            core_channel = _model.objects.Channel(data_channel)
-        else:
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
+
+        if core_guild:
             core_channel = vessel.pop(core_guild.channels, core_channel_id)
+        else:
+            core_channel = _model.objects.Channel(data_channel)
 
         core_event = _events.DeleteChannel(
             guild  = core_guild,
@@ -5857,7 +5887,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
             core_thread = _model.objects.Channel(data_thread)
         else:
@@ -5885,12 +5915,12 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         try:
             core_thread = core_guild.threads[core_thread_id]
-        except KeyError:
+        except LookupError:
             copy_thread = None
             core_thread = _model.objects.Channel(data_thread)
         else:
@@ -5924,7 +5954,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
             core_thread  = _model.objects.Channel(data_thread)
         else:
@@ -5948,7 +5978,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         try:
@@ -6005,12 +6035,12 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         try:
             core_thread = core_guild.threads[core_thread_id]
-        except KeyError:
+        except LookupError:
             core_thread = _model.objects.Channel(data_thread)
         
         core_thread_member = core_thread.member
@@ -6044,7 +6074,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_thread = {}
@@ -6054,7 +6084,7 @@ class Client:
 
         try:
             core_thread = core_guild.threads[core_thread_id]
-        except KeyError:
+        except LookupError:
             core_thread = core_guild.threads[core_thread_id]
 
         data_created_thread_members = data['added_members']
@@ -6093,8 +6123,8 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -6103,8 +6133,8 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
-            core_channel = core_guild.channels[core_channel_id]
+        except LookupError:
+            core_channel = _model.objects.Channel(data_channel)
 
         data_timestamp = data['last_pin_timestamp']
 
@@ -6131,11 +6161,16 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             Event = _events.CreateGuild
             core_guild = vessel.add(self._cache.guilds, data_guild)
         else:
-            Event = _events.AvailableGuild
+            try:
+                self._ready_guild_ids.remove(core_guild_id)
+            except KeyError:
+                Event = _events.AvailableGuild
+            else:
+                Event = _events.CreateGuild
             core_guild = vessel.update(core_guild, data_guild)
         
         core_event = Event(
@@ -6154,7 +6189,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             copy_guild = _model.missing
             core_guild = _model.objects.Guild(data_guild)
         else:
@@ -6181,7 +6216,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
         else:
             core_guild = vessel.update(core_guild, data_guild)
@@ -6209,7 +6244,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_audit_log_entry = data
@@ -6234,7 +6269,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_user = data['user']
@@ -6259,7 +6294,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_user = data['user'] 
@@ -6284,7 +6319,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_emojis = data['emojis']
@@ -6316,7 +6351,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_stickers = data['stickers']
@@ -6348,7 +6383,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         core_event = _events.UpdateGuildIntegrations(
@@ -6368,7 +6403,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_member = data
@@ -6393,7 +6428,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_member = {}
@@ -6424,7 +6459,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_member = {}
@@ -6434,7 +6469,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             copy_guild_member = None
             core_guild_member = _model.objects.GuildMember(data_guild_member)
         else:
@@ -6467,7 +6502,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_members = data['members']
@@ -6513,7 +6548,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_role = data['role']
@@ -6538,7 +6573,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_role = data['role']
@@ -6547,7 +6582,7 @@ class Client:
 
         try:
             core_guild_role = core_guild.roles[core_guild_role_id]
-        except KeyError:
+        except LookupError:
             copy_guild_role = None
             core_guild_role = _model.objects.Role(data_guild_role)
         else:
@@ -6577,7 +6612,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_role = {}
@@ -6610,7 +6645,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
             core_guild_scheduled_event = _model.objects.GuildScheduledEvent(data_guild_scheduled_event)
         else:
@@ -6634,7 +6669,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_scheduled_event = data
@@ -6673,7 +6708,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_scheduled_event = data
@@ -6703,7 +6738,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_scheduled_event = {}
@@ -6713,7 +6748,7 @@ class Client:
 
         try:
             core_guild_scheduled_event = core_guild.scheduled_events[core_guild_scheduled_event_id]
-        except KeyError:
+        except LookupError:
             core_guild_scheduled_event = _model.objects.GuildScheduledEvent(data_guild_scheduled_event)
 
         data_user = {}
@@ -6726,7 +6761,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_guild_member = _model.objects.GuildMember(data_guild_member)
 
         core_event = _events.CreateGuildScheduledEventUser(
@@ -6748,7 +6783,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_guild_scheduled_event = {}
@@ -6758,7 +6793,7 @@ class Client:
 
         try:
             core_guild_scheduled_event = core_guild.scheduled_events[core_guild_scheduled_event_id]
-        except KeyError:
+        except LookupError:
             core_guild_scheduled_event = _model.objects.GuildScheduledEvent(data_guild_scheduled_event)
 
         data_user = {}
@@ -6771,7 +6806,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_guild_member = _model.objects.GuildMember(data_guild_member)
 
         core_event = _events.DeleteGuildScheduledEventUser(
@@ -6793,7 +6828,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_integration = data
@@ -6818,7 +6853,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_integration = data
@@ -6843,7 +6878,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_integration = {}
@@ -6877,24 +6912,17 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
         
         data_channel = {}
         data_channel['id'] = data['channel_id']
 
-        if core_guild:
-            core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
-            try:
-                core_channel = core_guild.channels[core_channel_id]
-            except KeyError:
-                make_channel = True
-            else:
-                make_channel = False
-        else:
-            make_channel = True
+        core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
 
-        if make_channel:
+        try:
+            core_channel = core_guild.channels[core_channel_id]
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
             
         data_invite = data
@@ -6923,24 +6951,17 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
         
         data_channel = {}
         data_channel['id'] = data['channel_id']
 
-        if core_guild:
-            core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
-            try:
-                core_channel = core_guild.channels[core_channel_id]
-            except KeyError:
-                make_channel = True
-            else:
-                make_channel = False
-        else:
-            make_channel = True
+        core_channel_id = vessel.keyify(_model.objects.Channel, data_channel)
 
-        if make_channel:
+        try:
+            core_channel = core_guild.channels[core_channel_id]
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_invite = {}
@@ -6970,8 +6991,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -6981,7 +7002,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
         else:
             core_channel = vessel.update(core_channel, data_channel)
@@ -7012,8 +7033,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -7022,7 +7043,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = data
@@ -7047,12 +7068,12 @@ class Client:
         except KeyError:
             core_guild_id = _model.missing
         else:
-            core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
+            core_guild_id = core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -7061,7 +7082,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = {}
@@ -7091,8 +7112,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -7101,7 +7122,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_messages = []
@@ -7134,8 +7155,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7148,7 +7169,7 @@ class Client:
             core_guild_member_id = vessel.keyify(_model.objects.GuildMember, data_guild_member)
             try:
                 core_guild_member = core_guild.members[core_guild_member_id]
-            except KeyError:
+            except LookupError:
                 core_guild_member = _model.objects.GuildMember(data_guild_member)
 
         if core_guild_member:
@@ -7163,7 +7184,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = {}
@@ -7200,8 +7221,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7213,7 +7234,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_guild_member = _model.missing
 
         if core_guild_member:
@@ -7228,7 +7249,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = {}
@@ -7265,8 +7286,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -7275,7 +7296,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = {}
@@ -7305,8 +7326,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_channel = {}
         data_channel['id'] = data['channel_id']
@@ -7315,7 +7336,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_message = {}
@@ -7347,7 +7368,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_presence = data
@@ -7356,7 +7377,7 @@ class Client:
 
         try:
             core_presence = core_guild.presences[core_presence_id]
-        except KeyError:
+        except LookupError:
             copy_presence = _model.missing
             core_presence = _model.objects.Presence(data_presence)
         else:
@@ -7389,8 +7410,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7403,7 +7424,7 @@ class Client:
             core_guild_member_id = vessel.keyify(_model.objects.GuildMember, data_guild_member)
             try:
                 core_guild_member = core_guild.members[core_guild_member_id]
-            except KeyError:
+            except LookupError:
                 core_guild_member = _model.objects.GuildMember(data_guild_member)
 
         if core_guild_member:
@@ -7418,7 +7439,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         data_timestamp = data['timestamp']
@@ -7441,7 +7462,7 @@ class Client:
 
         data_user = data
 
-        core_user = self._cache._usr
+        core_user = self._cache.user
 
         copy_user = copy.copy(core_user)
 
@@ -7471,8 +7492,8 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_voice_state = data
 
@@ -7487,7 +7508,7 @@ class Client:
             copy_voice_state = copy.copy(core_voice_state)
             core_voice_state = vessel.update(core_voice_state, data_voice_state)
 
-        if core_voice_state.channel_id is None:
+        if not core_voice_state.channel_id and core_guild:
             del core_guild[core_voice_state_id]
 
         if core_voice_state.user_id == self._cache.user.id:
@@ -7523,7 +7544,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_token = data['token']
@@ -7555,7 +7576,7 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_channel = {}
@@ -7565,7 +7586,7 @@ class Client:
 
         try:
             core_channel = core_guild.channels[core_channel_id]
-        except KeyError:
+        except LookupError:
             core_channel = _model.objects.Channel(data_channel)
 
         core_event = _events.UpdateWebhooks(
@@ -7605,11 +7626,13 @@ class Client:
 
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
-            core_guild = _model.objects.Guild(data_guild)
-            core_stage_instance = _model.objects.StageInstance(data_stage_instance)
-        else:
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
+
+        if core_guild:
             core_stage_instance = vessel.add(core_guild.stage_instances, data_stage_instance)
+        else:
+            core_stage_instance = _model.objects.StageInstance(data_stage_instance)
 
         core_event = _events.CreateInteraction(
             stage_instance = core_stage_instance
@@ -7628,7 +7651,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_stage_instance = data
@@ -7665,7 +7688,7 @@ class Client:
         
         try:
             core_guild = self._cache.guilds[core_guild_id]
-        except KeyError:
+        except LookupError:
             core_guild = _model.objects.Guild(data_guild)
 
         data_stage_instance = data
@@ -7725,15 +7748,16 @@ class Client:
         data_guild_id = voice.guild_id
 
         if data_guild_id is None:
-            core_guild = _model.missing
+            core_guild_id = _model.missing
         else:
             data_guild = {}
             data_guild['id'] = voice.guild_id
             core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
-            try:
-                core_guild = self._cache.guilds[core_guild_id]
-            except KeyError:
-                core_guild = _model.objects.Guild(data_guild)
+
+        try:
+            core_guild = self._cache.guilds[core_guild_id]
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7745,7 +7769,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_user = _model.objects.User(data_user)
         else:
             core_user = core_guild_member.user
@@ -7762,15 +7786,16 @@ class Client:
         data_guild_id = voice.guild_id
 
         if data_guild_id is None:
-            core_guild = _model.missing
+            core_guild_id = _model.missing
         else:
             data_guild = {}
             data_guild['id'] = voice.guild_id
             core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
-            try:
-                core_guild = self._cache.guilds[core_guild_id]
-            except KeyError:
-                core_guild = _model.objects.Guild(data_guild)
+
+        try:
+            core_guild = self._cache.guilds[core_guild_id]
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7782,7 +7807,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_user = _model.objects.User(data_user)
         else:
             core_user = core_guild_member.user
@@ -7804,10 +7829,11 @@ class Client:
             data_guild = {}
             data_guild['id'] = voice.guild_id
             core_guild_id = vessel.keyify(_model.objects.Guild, data_guild)
-            try:
-                core_guild = self._cache.guilds[core_guild_id]
-            except KeyError:
-                core_guild = _model.objects.Guild(data_guild)
+
+        try:
+            core_guild = self._cache.guilds[core_guild_id]
+        except LookupError:
+            core_guild = _model.objects.Guild(data_guild) if core_guild_id else _model.missing
 
         data_user = {}
         data_user['id'] = data['user_id']
@@ -7819,7 +7845,7 @@ class Client:
 
         try:
             core_guild_member = core_guild.members[core_guild_member_id]
-        except KeyError:
+        except LookupError:
             core_user = _model.objects.User(data_user)
         else:
             core_user = core_guild_member.user
@@ -7884,7 +7910,7 @@ class Client:
         """
         Use :meth:`.gateway.client.Client.request_guild_members` for the respective guild's shard.
         """
-
+        
         return self._request_guild_members(fields)
     
     def _create_self_voice_state(self, **fields):
@@ -7982,15 +8008,12 @@ class Client:
             if shard_ids_index:
                 await asyncio.sleep(5)
             shard_event_coros = []
-            shard_start_tasks = []
             for shard_id in shard_ids:
                 shard = get_shard(shard_id)
                 self._shards[shard_id] = shard
                 shard_event_coro = shard.event_identify.wait()
                 shard_event_coros.append(shard_event_coro)
-                shard_start_coro = shard.start()
-                shard_start_task = asyncio.create_task(shard_start_coro)
-                shard_start_tasks.append(shard_start_task) 
+                await shard.start()
             await asyncio.gather(*shard_event_coros)
 
     def start(self,
@@ -8013,7 +8036,9 @@ class Client:
         """
         
         if intents is None:
-            intents = _enums.Intents.default()
+            intents = 0
+
+        intents = _enums.Intents(intents) | _enums.Intents.guilds
 
         return self._start_gateway(intents, present, shard_ids, shard_count)
 

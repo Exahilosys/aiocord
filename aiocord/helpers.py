@@ -10,6 +10,16 @@ def get_shard_id_via_guild_id(shard_count, guild_id):
 
     return (int(guild_id) >> 22) % shard_count
 
+async def iterate_route(request, fix, quota, limit, mono):
+    chunk = []
+    while limit > 0:
+        fix(min(quota, limit), chunk)
+        chunk = await request()
+        for value in chunk:
+            yield value
+        if mono or len(chunk) < quota:
+            break
+        limit -= len(chunk)
 
 def yank_dict(origin, keys):
 

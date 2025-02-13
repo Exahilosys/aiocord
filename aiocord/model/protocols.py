@@ -7,7 +7,7 @@ from . import enums as _enums
 __all__ = (
     'ApplicationCommand', 'ApplicationCommandOption', 
     'ApplicationCommandOptionChoice', 'GuildApplicationCommandPermissions',
-    'ApplicationCommandPermission', 'MessageActionRowComponent',
+    'ApplicationCommandPermissions', 'MessageActionRowComponent',
     'MessageButtonComponent', 'MessageSelectMenuComponent', 
     'MessageSelectMenuComponentDefaultValue', 
     'MessageSelectMenuComponentOption', 'MessageTextInputComponent', 
@@ -94,7 +94,7 @@ class GuildApplicationCommandPermissions(typing.TypedDict):
     permissions   : _types.Collection['ApplicationCommandPermission']
 
 
-class ApplicationCommandPermission(typing.TypedDict):
+class ApplicationCommandPermissions(typing.TypedDict):
 
     id        : _types.Snowflake
     type      : _enums.ApplicationCommandPermissionType
@@ -447,7 +447,7 @@ class Message(typing.TypedDict):
     attachments           : list['Attachment']
     embeds                : list['Embed']
     reactions             : list['Reaction']
-    nonce                 : _types.String | _types.Integer
+    nonce                 : typing.Union[_types.String, _types.Integer]
     pinned                : _types.Boolean
     webhook_id            : _types.Snowflake
     type                  : _enums.MessageType
