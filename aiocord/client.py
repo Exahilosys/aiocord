@@ -7509,7 +7509,7 @@ class Client:
             core_voice_state = vessel.update(core_voice_state, data_voice_state)
 
         if not core_voice_state.channel_id and core_guild:
-            del core_guild[core_voice_state_id]
+            del core_guild.voice_states[core_voice_state_id]
 
         if core_voice_state.user_id == self._cache.user.id:
             if core_voice_state.channel_id:
